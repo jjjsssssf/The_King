@@ -449,134 +449,178 @@ DEF: [{magia.bonus_def}]"""
         draw_window(term, x_janela, y_janela, width=len(mensagem)-5, height=herd, text_content=mensagem)
     
     def inventario_(self, x, y, werd, herd, batalha):
-        text_content = ""
-        contagem_itens = defaultdict(int)
-        lista_itens = []
-
-        for item_obj in self.inventario:
-            contagem_itens[item_obj.nome] += 1
-
-        if not self.inventario:
-            text_content = "Não tem nada no inventário.\n"
-        else:
-            index = 1
-            for item_nome, quantidade in contagem_itens.items():
-                item_obj = TODOS_OS_ITENS[item_nome]
-                estado = ""
-                if item_obj.slot_equip and self.equipa.get(item_obj.slot_equip) and self.equipa[item_obj.slot_equip].nome == item_obj.nome:
-                    estado = "[Equipado]"
-                text_content += f"[{index}] {item_obj.nome} (x{quantidade}) {estado}\n"
-                lista_itens.append(item_obj)
-                index += 1
-
-        text_content += "Escolha um número para usar o item\nDigite 'sair' para sair"
-        num_linhas_texto = text_content.count('\n') + 1
-        altura_janela = num_linhas_texto + 4
-
+        altura_janela = 0
+        sucesso_uso = False
         while True:
-            clear_region_a(x=x, start_y=altura_janela, end_y=altura_janela - 1, width=werd)
+            text_content = ""
+            contagem_itens = defaultdict(int)
+            lista_itens = []
+            indice_para_item = {}
+
+            if not self.inventario:
+                text_content = "Não tem nada no inventário.\n"
+            else:
+                for item_obj in self.inventario:
+                    contagem_itens[item_obj.nome] += 1
+                index = 1
+                for item_nome, quantidade in contagem_itens.items():
+                    item_obj_ref = TODOS_OS_ITENS[item_nome]
+                    
+                    estado = ""
+                    if (item_obj_ref.slot_equip and
+                        self.equipa.get(item_obj_ref.slot_equip) and
+                        self.equipa[item_obj_ref.slot_equip].nome == item_obj_ref.nome):
+                        estado = "[Equipado]"
+                    
+                    text_content += f"[{index}] {item_obj_ref.nome} (x{quantidade}) {estado}\n"
+                    
+                    lista_itens.append(item_obj_ref)
+                    indice_para_item[index - 1] = item_obj_ref
+                    index += 1
+            text_content += "Escolha um número para usar o item\nDigite 'sair' para sair"
+            num_linhas_texto = text_content.count('\n') + 1
+            altura_janela = num_linhas_texto + 4 
+            clear()
             draw_window(term, x, y, width=werd, height=altura_janela, title="Inventário", text_content=text_content)
-            x_input = x + 2
+            x_input = x +1
             y_input = y + altura_janela - 3
+            with term.location(x_input, y_input):
+                print(" " * (werd - 4), end='\r')
             with term.location(x_input, y_input):
                 escolha = input(">")
 
             if escolha.lower() == "sair":
-                return False
+                return sucesso_uso
 
             if escolha.isdigit():
                 escolha_index = int(escolha) - 1
                 if 0 <= escolha_index < len(lista_itens):
-                    item_escolhido = lista_itens[escolha_index]
+                    item_escolhido = lista_itens[escolha_index] 
+                    
                     if batalha:
                         if item_escolhido.tipo == "Consumivel":
-                            return self.usar_consumivel(item_escolhido, x, y + altura_janela + 1, werd)
+                            sucesso_uso_local = self.usar_consumivel(item_escolhido, x, y + altura_janela + 1, werd)
+                            if sucesso_uso_local:
+                                sucesso_uso = True
+                                return True 
+                            
                         elif item_escolhido.tipo == "Equipavel":
                             mensagem = "Você não pode usar\num equipamento em batalha!"
                             draw_window(term, x=x, y=y + altura_janela, width=werd, height=4, text_content=mensagem)
                             time.sleep(3)
-                    else:
+                            clear()
+                    
+                    else: 
                         if item_escolhido.tipo == "Consumivel":
-                            self.usar_consumivel(item_escolhido, x, y + altura_janela, werd)
+                            sucesso_uso = self.usar_consumivel(item_escolhido, x, y + altura_janela, werd) or sucesso_uso
                         elif item_escolhido.tipo == "Equipavel":
-                            self.gerenciar_equipavel(item_escolhido, x, y + altura_janela, werd)
+                            alteracao_equip = self.gerenciar_equipavel(item_escolhido, x, y + altura_janela, werd)
+                            if alteracao_equip:
+                                sucesso_uso = True
+                            
                 else:
                     mensagem = "Número inválido."
                     draw_window(term, x=x, y=y + altura_janela, width=werd, height=3, text_content=mensagem)
                     time.sleep(2)
+                    clear()
             else:
                 mensagem = "Entrada inválida."
                 draw_window(term, x=x, y=y + altura_janela, width=werd, height=3, text_content=mensagem)
                 time.sleep(2)
+                clear()
 
     def usar_consumivel(self, item, x_janela, y_janela, werd):
+        """Retorna True se o item foi usado e removido do inventário, False caso contrário."""
         altura_mensagem = 3
-        clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd)
+        clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd) 
+        sucesso = False
         if item.nome == "Poção de Cura":
             if self.hp >= self.hp_max:
                 mensagem = "Seu HP já está no máximo!"
-                sucesso = False
             else:
-                mensagem = "Você bebeu uma poção de cura."
                 self.hp = min(self.hp + item.bonus_hp, self.hp_max)
-                self.inventario.remove(item)
+                self.inventario.remove(item) # Remove a instância do item
+                mensagem = "Você bebeu uma poção de cura."
                 sucesso = True
         elif item.nome == "Elixir":
             if self.mana >= self.mana_max:
                 mensagem = "Sua Mana já está no máximo!"
-                sucesso = False
             else:
-                mensagem = "Você bebeu um elixir."
                 self.mana = min(self.mana + item.bonus_mana, self.mana_max)
-                self.inventario.remove(item)
+                self.inventario.remove(item) # Remove a instância do item
+                mensagem = "Você bebeu um elixir."
                 sucesso = True
         elif item.nome == "Suco":
             if self.stm >= self.stm_max:
                 mensagem = "Sua Stamina já está no máximo!"
-                sucesso = False
             else:
-                mensagem = "Você bebeu um suco."
                 self.stm = min(self.stm + item.bonus_stm, self.stm_max)
-                self.inventario.remove(item)
+                self.inventario.remove(item) # Remove a instância do item
+                mensagem = "Você bebeu um suco."
                 sucesso = True
 
         draw_window(term, x_janela, y_janela, width=werd, height=altura_mensagem, text_content=mensagem)
         time.sleep(2)
-        clear_region_a(x_janela, y_janela, y_janela + altura_mensagem, werd)
+        clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd) # Limpa a mensagem
         return sucesso
 
     def gerenciar_equipavel(self, item, x_janela, y_janela, werd):
+        """Retorna True se o equipamento foi equipado/desequipado, False caso contrário."""
         altura_opcoes = 6
         altura_feedback = 4
-        clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd)
+        # Limpa a área de opções e feedback
+        clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd) 
+        
         text_content = "O que deseja fazer com o item?\n[1]Equipar\n[2]Desequipar"
         draw_window(term, x_janela, y_janela, width=werd, height=altura_opcoes, title=item.nome, text_content=text_content)
+        
         with term.location(x_janela + 2, y_janela + altura_opcoes - 2):
+            print(" " * (werd - 4), end='\r')
             esc = input(">")
+        
+        alteracao_efetuada = False
+        feedback = ""
+        
         if esc == "1":
-            if not self.equipa.get(item.slot_equip):
+            if not self.equipa.get(item.slot_equip) or self.equipa[item.slot_equip] is None:
                 self.equipa[item.slot_equip] = item
                 self.atk += item.bonus_atk
                 self.defesa += item.bonus_def
                 self.dano_magico += item.bonus_atk_mana
                 feedback = f"Você equipou {item.nome}."
+                alteracao_efetuada = True
+            elif self.equipa[item.slot_equip].nome == item.nome:
+                feedback = "Este item já está equipado."
             else:
-                feedback = "Já tem algo equipado nesse slot!"
+                feedback = f"Já tem o item {self.equipa[item.slot_equip].nome} equipado nesse slot!"
+                
         elif esc == "2":
+            # Desequipa SE o item_escolhido (que é a REFERÊNCIA do tipo de item) for o que está equipado
             if self.equipa.get(item.slot_equip) and self.equipa[item.slot_equip].nome == item.nome:
+                # Pega o objeto que está equipado para desequipar
+                item_equipado = self.equipa[item.slot_equip]
+                
                 self.equipa[item.slot_equip] = None
-                self.atk -= item.bonus_atk
-                self.defesa -= item.bonus_def
-                self.dano_magico -= item.bonus_atk_mana
-                feedback = f"Você desequipou {item.nome}."
+                self.atk -= item_equipado.bonus_atk
+                self.defesa -= item_equipado.bonus_def
+                self.dano_magico -= item_equipado.bonus_atk_mana
+                feedback = f"Você desequipou {item_equipado.nome}."
+                alteracao_efetuada = True
             else:
-                feedback = "Este item não está equipado."
+                feedback = "Este item não está equipado ou você escolheu outro tipo."
+                
         else:
             feedback = "Opção inválida."
 
+        # Limpa a área de feedback antes de desenhar
+        clear_region_a(x_janela, y_janela + altura_opcoes, y_janela + altura_opcoes + altura_feedback, werd)
         draw_window(term, x_janela, y_janela + altura_opcoes, width=werd, height=altura_feedback, text_content=feedback)
         time.sleep(2)
-        clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd)
+        # Limpa toda a região de gerenciamento após o feedback
+        clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd) 
+        
+        return alteracao_efetuada
+
 
     def gerenciar_loja(self, x, y, largura):
         while True:

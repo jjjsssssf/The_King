@@ -337,7 +337,7 @@ def mini_mapa(
                             INTERACOES[caractere]()
         else:
             if movi == "i":
-                player.inventario_(x=x_l + CAMERA_WIDTH + 5, y=y_l, werd=CAMERA_WIDTH + 5, herd=0, batalha=False)
+                player.inventario_(x=x_l, y=y_l, werd=CAMERA_WIDTH + 5, herd=0, batalha=False)
             elif movi == "sair":
                 exit()
             elif movi == "up":

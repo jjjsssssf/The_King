@@ -95,9 +95,9 @@ def solicitar_nome(x_l, y_l, menu_art):
         prompt = "Qual será seu Nome:\n(max 8 caracteres)"
         num_linhas = prompt.count("\n") + 4
         draw_window(term, x=x_l, y=y_l, width=90, height=24, text_content=menu_art)
-        draw_window(term, x=x_l+25, y=y_l+num_linhas+2, width=27, height=num_linhas, text_content=prompt)
+        draw_window(term, x=x_l+25, y=y_l+num_linhas+3, width=27, height=num_linhas, text_content=prompt)
 
-        with term.location(x=x_l+26, y=y_l+num_linhas+5):
+        with term.location(x=x_l+26, y=y_l+num_linhas+6):
             nome = input(">")
 
         if len(nome) > 8:

@@ -47,6 +47,12 @@ def menu_inicial(x_l, y_l):
                 skin_nome=skin_nome 
             )
             jj.dificuldade_atual = dificuldade_key
+            if jj.dificuldade_atual == 'Facil':
+                jj.ponto += 15
+            elif jj.dificuldade_atual == 'Normal':
+                jj.ponto += 10
+            elif jj.dificuldade_atual == 'Dificil':
+                jj.ponto += 5
             clear()
             jj.up(x=x_l, y=y_l, werd=35, herd=15, x_i=-34)
             mini_mapa(
@@ -99,15 +105,15 @@ def solicitar_nome(x_l, y_l, menu_art):
         prompt = "Qual será seu Nome:\n(max 8 caracteres)"
         num_linhas = prompt.count("\n") + 4
         draw_window(term, x=x_l, y=y_l, width=90, height=24, text_content=menu_art)
-        draw_window(term, x=x_l+25, y=y_l+num_linhas+2, width=27, height=num_linhas, text_content=prompt)
+        draw_window(term, x=x_l+25, y=y_l+num_linhas+3, width=27, height=num_linhas, text_content=prompt)
 
-        with term.location(x=x_l+26, y=y_l+num_linhas+5):
+        with term.location(x=x_l+26, y=y_l+num_linhas+6):
             nome = input(">")
 
         if len(nome) > 8:
-            mostrar_mensagem(x_l+26, y_l+num_linhas+5, "Nome muito extenso")
+            mostrar_mensagem(x_l+26, y_l+num_linhas+6, "Nome muito extenso")
         elif len(nome) < 1:
-            mostrar_mensagem(x_l+26, y_l+num_linhas+5, "Digite pelo menos 1 letra")
+            mostrar_mensagem(x_l+26, y_l+num_linhas+6, "Digite pelo menos 1 letra")
         else:
             return nome
         

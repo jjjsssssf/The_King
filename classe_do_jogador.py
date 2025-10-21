@@ -282,7 +282,7 @@ Digite Nome e Quantidade"""
                     else:
                         attr_name, display_name = STATUS_MAP[stat_name]
                         current_value = getattr(self, attr_name)
-                        setattr(self, attr_name, current_value + (amount * 3))
+                        setattr(self, attr_name, current_value + (amount * 2))
                         self.ponto -= amount
                         msg = f"Você melhorou seu {display_name}"
                 else:

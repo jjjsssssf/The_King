@@ -134,7 +134,7 @@ def mover_inimigos_para_jogador(mapa_art, player, obstaculos, inimigo_chars, est
 def mini_mapa(
     x_l, y_l, player, ascii, mapas_, camera_w, camera_h, x_p, y_p, menager,
     cores_custom=None, obstaculos_custom=None, mapa_anterior=None, interacoes_custom=None,   
-    mapa_nome=None
+    mapa_nome=None, carregar_estado=False
 ):
     ESTADO_MAPAS = {}
 
@@ -143,8 +143,10 @@ def mini_mapa(
         player.mapa_atual = mapa_nome
 
     save_filename = f"save_mapa_{mapa_id}.json"
+    estado_carregado = None
+    if carregar_estado: 
+        estado_carregado = carregar_mapa_estado(save_filename)
 
-    estado_carregado = carregar_mapa_estado(save_filename)
     if estado_carregado:
         mapa_art = estado_carregado["mapa_art"]
         max_width = max(len(linha) for linha in mapa_art)
@@ -378,7 +380,7 @@ def mini_mapa(
                 feedback_message = f"Comando '{movi}' inválido. Use w/a/s/d/inventario/up/q."
 
 
-mini_mapa(
+"""mini_mapa(
 x_l=0,
 y_l=0,
 player=player,
@@ -386,7 +388,10 @@ ascii=ascii,
 mapas_=mapas.castelo.split('\n'),
 camera_w=35,
 camera_h=15,
-x_p=4,
-y_p=2,
+x_p=5,
+y_p=3,
 menager="",
-mapa_nome='castelo')
+mapa_nome='castelo',
+carregar_estado=False)
+
+"""

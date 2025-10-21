@@ -66,7 +66,8 @@ def menu_inicial(x_l, y_l):
                 x_p=5,
                 y_p=3,
                 menager="",
-                mapa_nome='castelo')
+                mapa_nome='castelo',
+                carregar_estado=False)
 
         elif escolha == "2":
             player_carregado = jogador.load_game(filename="demo.json")
@@ -92,6 +93,7 @@ def menu_inicial(x_l, y_l):
                     y_p=y_p_load,
                     menager="",
                     mapa_nome=mapa_nome_load,
+                    carregar_estado=True
                 )
             
             else:

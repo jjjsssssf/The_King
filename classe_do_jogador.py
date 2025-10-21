@@ -35,6 +35,12 @@ class jogador:
         self.x_mapa = 0
         self.y_mapa = 0
         self.boss = {'Suny': False}
+        self.dificuldade = {
+            "Facil": {"dif": None, "niv": 0.5},
+            "Normal": {"dif": None, "niv": 1},
+            "Dificil": {"dif": None, "niv": 2.5}
+        }
+        self.dificuldade_atual = "Normal"
         self.inventario = []
         self.mana_lit = mana_lit if mana_lit else []
         self.equipa = {
@@ -188,6 +194,8 @@ class jogador:
             print(f"Gold: [{term.bold_yellow(str(self.gold))}] - Nivel: [{term.bold_green(str(self.niv))}]")
         with term.location(x=x_l, y=y_l+6):
             print(f"X: [{term.bold_blue(str(self.x_mapa))}] - Y: [{term.bold_red(str(self.y_mapa))}]")
+        with term.location(x=x_l, y=y_l+7):
+            print(f"Dificudade: [{self.dificuldade_atual}]")
 
     def status_art(self ,x_janela, y_janela):
         art_player = self.art_player
@@ -223,7 +231,7 @@ class jogador:
         print(f"Você ganhou {xp_ganho} de XP. Total: {self.xp}/{self.xp_max}")
         time.sleep(2)
 
-    def up(self, x, y, werd, herd):
+    def up(self, x, y, werd, herd, x_i):
         STATUS_MAP = {
             "HP": ("hp_max", "HP"),
             "MP": ("stm_max", "MP"),
@@ -246,15 +254,15 @@ DEF: [{self.defesa}]
 MG: [{self.mana_max}]
 MA: [{self.dano_magico}]
 INT: [{self.intt}]
-Digite o Nome do Status e Quantidade (ex: HP 5) ou SAIR:"""
+Digite Nome e Quantidade"""
 
             draw_window(term, x=x, y=y, width=werd, height=herd, text_content=mensagem)
 
             if self.ponto >= 1:
-                with term.location(x=werd+1, y=herd-6):
+                with term.location(x=werd+x_i, y=herd-5):
                     up_input = input(">").strip().upper()
             else:
-                with term.location(x=werd+1, y=herd-5):
+                with term.location(x=werd+x_i, y=herd-5):
                     print("Você não tem Pontos para melhorar.")
                     input()
                     break
@@ -282,9 +290,9 @@ Digite o Nome do Status e Quantidade (ex: HP 5) ou SAIR:"""
             else:
                 msg = "Formato inválido.Use: STATUS QUANTIDADE"
 
-            with term.location(x=werd+1, y=herd-5):
+            with term.location(x=werd+x_i, y=herd-5):
                 print(" " * 50)
-            with term.location(x=werd+1, y=herd-5):
+            with term.location(x=werd+x_i, y=herd-5):
                 print(msg)
             time.sleep(2)
 
@@ -480,7 +488,7 @@ DEF: [{magia.bonus_def}]"""
             text_content += "Escolha um número para usar o item\nDigite 'sair' para sair"
             num_linhas_texto = text_content.count('\n') + 1
             altura_janela = num_linhas_texto + 4 
-            clear()
+            clear_region_a(x=x, start_y=y, end_y=y, width=werd)
             draw_window(term, x, y, width=werd, height=altura_janela, title="Inventário", text_content=text_content)
             x_input = x +1
             y_input = y + altura_janela - 3
@@ -508,7 +516,7 @@ DEF: [{magia.bonus_def}]"""
                             mensagem = "Você não pode usar\num equipamento em batalha!"
                             draw_window(term, x=x, y=y + altura_janela, width=werd, height=4, text_content=mensagem)
                             time.sleep(3)
-                            clear()
+                            clear_region_a(x=x, start_y=y, end_y=y, width=werd)
                     
                     else: 
                         if item_escolhido.tipo == "Consumivel":
@@ -522,12 +530,12 @@ DEF: [{magia.bonus_def}]"""
                     mensagem = "Número inválido."
                     draw_window(term, x=x, y=y + altura_janela, width=werd, height=3, text_content=mensagem)
                     time.sleep(2)
-                    clear()
+                    clear_region_a(x=x, start_y=y, end_y=y, width=werd)
             else:
                 mensagem = "Entrada inválida."
                 draw_window(term, x=x, y=y + altura_janela, width=werd, height=3, text_content=mensagem)
                 time.sleep(2)
-                clear()
+                clear_region_a(x=x, start_y=y, end_y=y, width=werd)
 
     def usar_consumivel(self, item, x_janela, y_janela, werd):
         """Retorna True se o item foi usado e removido do inventário, False caso contrário."""
@@ -568,7 +576,6 @@ DEF: [{magia.bonus_def}]"""
         """Retorna True se o equipamento foi equipado/desequipado, False caso contrário."""
         altura_opcoes = 6
         altura_feedback = 4
-        # Limpa a área de opções e feedback
         clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd) 
         
         text_content = "O que deseja fazer com o item?\n[1]Equipar\n[2]Desequipar"
@@ -576,6 +583,7 @@ DEF: [{magia.bonus_def}]"""
         
         with term.location(x_janela + 2, y_janela + altura_opcoes - 2):
             print(" " * (werd - 4), end='\r')
+        with term.location(x_janela + 2, y_janela + altura_opcoes - 2):
             esc = input(">")
         
         alteracao_efetuada = False
@@ -620,7 +628,6 @@ DEF: [{magia.bonus_def}]"""
         clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd) 
         
         return alteracao_efetuada
-
 
     def gerenciar_loja(self, x, y, largura):
         while True:
@@ -744,4 +751,3 @@ DEF: [{magia.bonus_def}]"""
         self.stm = self.stm_max
         self.mana = self.mana_max
         time.sleep(3)
-

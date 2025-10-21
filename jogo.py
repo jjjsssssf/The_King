@@ -80,22 +80,27 @@ def adicionar_caracteres_aleatorios(mapa_id, estado_mapa, caracteres_quantidades
 
 from collections import deque
 
-def mover_inimigos_para_jogador(mapa_art, player, obstaculos, inimigo_chars, estado_mapa):
+def mover_inimigos_para_jogador(mapa_art, player, obstaculos, inimigo_chars, estado_mapa, raio_visao=int):
     altura = len(mapa_art)
     largura = len(mapa_art[0])
     destino = (player.x_mapa, player.y_mapa)
+    
     if "fundo_inimigos" not in estado_mapa:
         estado_mapa["fundo_inimigos"] = {}
     fundo_inimigos = estado_mapa["fundo_inimigos"]
     inimigos = []
 
-    # Coleta todos os inimigos no mapa
     for y, linha in enumerate(mapa_art):
         for x, ch in enumerate(linha):
             if ch in inimigo_chars:
                 inimigos.append((x, y, ch))
 
     for inimigo_x, inimigo_y, inimigo_tipo in inimigos:
+        dx = player.x_mapa - inimigo_x
+        dy = player.y_mapa - inimigo_y
+        distancia = (dx ** 2 + dy ** 2) ** 0.5
+        if distancia > raio_visao:
+            continue
         visitados = set()
         fila = deque()
         fila.append(((inimigo_x, inimigo_y), []))
@@ -109,12 +114,13 @@ def mover_inimigos_para_jogador(mapa_art, player, obstaculos, inimigo_chars, est
             if (x, y) == destino:
                 caminho_encontrado = caminho
                 break
-            for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < largura and 0 <= ny < altura and (nx, ny) not in visitados:
                     ch = mapa_art[ny][nx]
                     if (nx, ny) == destino or (ch not in obstaculos and ch not in inimigo_chars):
                         fila.append(((nx, ny), caminho + [(nx, ny)]))
+
         if caminho_encontrado and len(caminho_encontrado) > 0:
             proximo_x, proximo_y = caminho_encontrado[0]
             if (proximo_x, proximo_y) == destino:
@@ -164,7 +170,7 @@ def mini_mapa(
     "inimigos_derrotados": set(),
     "baus_abertos": set(),
     "interacoes": {},
-    "obstaculos": obstaculos_custom or ['#','\\', '=', '|', 'G', 'F', 'B', f'{player.skin}'],
+    "obstaculos": obstaculos_custom or ['#','\\', 'G', 'F', 'B', f'{player.skin}', 'V', 'M'],
     "cores": cores_custom,
     "explorado": set(),
 }
@@ -173,7 +179,7 @@ def mini_mapa(
     player.y_mapa = y_p
     OBSTACULOS = obstaculos_custom or ESTADO_MAPAS[mapa_id]["obstaculos"]
     INTERACOES = interacoes_custom or {}
-    FOV_RADIUS = 5
+    FOV_RADIUS = 100
     ESCURECIDO_COR = ''
 
     feedback_message = ""
@@ -191,8 +197,9 @@ def mini_mapa(
         camera_y = max(0, min(MAP_HEIGHT - CAMERA_HEIGHT, player.y_mapa - CAMERA_HEIGHT // 2))
 
     while True:
+        obstaculos_inimigo = ['#','\\', 'G', 'F', 'B', f'{player.skin}', 'V', 'M', '/']
         inimigo_chars = ["F","G"]
-        mover_inimigos_para_jogador(mapa_art, player=player, obstaculos=OBSTACULOS, inimigo_chars=inimigo_chars, estado_mapa=ESTADO_MAPAS[mapa_id])
+        mover_inimigos_para_jogador(mapa_art, player=player, obstaculos=obstaculos_inimigo, inimigo_chars=inimigo_chars, estado_mapa=ESTADO_MAPAS[mapa_id], raio_visao=5)
 
         def bau(pos_bau):
             if pos_bau in ESTADO_MAPAS[mapa_id]["baus_abertos"]:
@@ -240,7 +247,9 @@ def mini_mapa(
             "\\": term.bold_brown,
             'B': term.brown,
             'G': term.green,
-            'F': term.red
+            'F': term.red,
+            'M': term.magenta,
+            'V': term.green
         }
 
         draw_window(term, x=x_l + CAMERA_WIDTH + 5, y=y_l, width=CAMERA_WIDTH + 5, height=CAMERA_HEIGHT + 2, text_content=menager)
@@ -271,17 +280,17 @@ def mini_mapa(
         with term.location(x_l + 2 + player.x_mapa - camera_x, y_l + 1 + player.y_mapa - camera_y):
             print(term.bold_yellow(player.skin) + term.normal)
             
-        def verificar_proximidade(x, y, raio=1):
+        def verificar_proximidade_cruz(x, y):
+            """Retorna apenas as posições em cruz: cima, baixo, esquerda, direita"""
+            direcoes = [(-1, 0), (1, 0), (0, -1), (0, 1)]
             proximidades = []
-            for dy in range(-raio, raio + 1):
-                for dx in range(-raio, raio + 1):
-                    nx, ny = x + dx, y + dy
-                    if 0 <= nx < MAP_WIDTH and 0 <= ny < MAP_HEIGHT:
-                        ch = mapa_art[ny][nx]
-                        proximidades.append((nx, ny, ch))
+            for dx, dy in direcoes:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < MAP_WIDTH and 0 <= ny < MAP_HEIGHT:
+                    ch = mapa_art[ny][nx]
+                    proximidades.append((nx, ny, ch))
             return proximidades
-
-        proximos = verificar_proximidade(player.x_mapa, player.y_mapa, raio=1)
+        proximos = verificar_proximidade_cruz(player.x_mapa, player.y_mapa)
 
         for px, py, ch in proximos:
             if ch == "B":
@@ -292,6 +301,11 @@ def mini_mapa(
                 if (px, py) not in ESTADO_MAPAS[mapa_id]["inimigos_derrotados"]:
                     inimigo_move((px, py))
                     break
+            elif ch == 'M':
+                player.aprender_magias(term ,x_menu=x_l + CAMERA_WIDTH + 5, y_menu=y_l, wend=CAMERA_WIDTH + 5, herd=CAMERA_HEIGHT)
+            elif ch == 'V':
+                player.gerenciar_loja(x=0, y=0, largura=30)
+
 
         if mapas_ == mapas.castelo.split("\n"):
             adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'G':10, 'F':5, "B":10})
@@ -337,11 +351,11 @@ def mini_mapa(
                             INTERACOES[caractere]()
         else:
             if movi == "i":
-                player.inventario_(x=x_l, y=y_l, werd=CAMERA_WIDTH + 5, herd=0, batalha=False)
+                player.inventario_(x=x_l + CAMERA_WIDTH + 5, y=y_l, werd=CAMERA_WIDTH + 5, herd=0, batalha=False)
             elif movi == "sair":
                 exit()
             elif movi == "up":
-                player.up(x=x_l + CAMERA_WIDTH + 5, y=y_l, werd=CAMERA_WIDTH + 5, herd=CAMERA_HEIGHT + 2)
+                player.up(x=x_l + CAMERA_WIDTH + 5, y=y_l, werd=CAMERA_WIDTH + 5, herd=CAMERA_HEIGHT + 2, x_i = 1)
             elif movi == "q" and mapa_anterior:
                 exit()
             elif movi == "save":
@@ -364,7 +378,7 @@ def mini_mapa(
                 feedback_message = f"Comando '{movi}' inválido. Use w/a/s/d/inventario/up/q."
 
 
-"""mini_mapa(
+mini_mapa(
 x_l=0,
 y_l=0,
 player=player,
@@ -376,4 +390,3 @@ x_p=4,
 y_p=2,
 menager="",
 mapa_nome='castelo')
-"""

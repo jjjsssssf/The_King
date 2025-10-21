@@ -8,21 +8,28 @@ ascii = art_ascii()
 player_b = jogador(nome="", hp_max=100, atk=15, niv=1, xp_max=100, defesa=10, gold=0, stm_max=100, intt=10, mn_max=100,d_m=20, art_player=ascii.necro, skin=0,skin_nome='')
 inimigo_b = inimigo(nome="", hp_max=0, atk=0, niv=0, xp=0, defesa=0, gold=0, art_ascii='',atk1="",atk2="")
 
-def seleção_inimigo(num = None, ):
+def seleção_inimigo(num=None):
+    try:
+        multiplicador_dif = player_b.dificuldade[player_b.dificuldade_atual]["niv"]
+    except KeyError:
+        multiplicador_dif = 1
+
     nome = ""
     art_ascii = ""
     atk1 = ""
     atk2 = ""
     hp_max = atk = niv = xp = defesa = gold = 0
+
     if num == 1:
         nomes = ['Esqueleto', 'Demonio', 'Samurai']
         nome = random.choice(nomes)
+
         if nome == 'Esqueleto':
             art_ascii = ascii.esqueleto
             atk1 = "Soco"
             atk2 = "Ossada"
         elif nome == 'Demonio':
-            art_ascii = ascii.demoni0 
+            art_ascii = ascii.demoni0
             atk1 = "Soco"
             atk2 = "Tridente"
         elif nome == "Samurai":
@@ -31,21 +38,28 @@ def seleção_inimigo(num = None, ):
             atk2 = "Espadada"
 
         if player_b.niv <= 5:
-            hp_max = random.randint(50, 100)
-            atk = random.randint(5, 15)
-            niv = random.randint(1, 5)
-            xp = random.randint(50, 300)
-            defesa = random.randint(5, 15)
-            gold = random.randint(20, 250)
+            hp_max_base = random.randint(50, 100)
+            atk_base = random.randint(5, 15)
+            niv_base = random.randint(1, 5)
+            xp_base = random.randint(50, 300)
+            defesa_base = random.randint(5, 15)
+            gold_base = random.randint(20, 250)
         else:
-            hp_max = random.randint(200, 350)
-            atk = random.randint(10, 25)
-            niv = random.randint(6, 12)
-            xp = random.randint(300, 600)
-            defesa = random.randint(10, 25)
-            gold = random.randint(50, 280)
+            hp_max_base = random.randint(200, 350)
+            atk_base = random.randint(10, 25)
+            niv_base = random.randint(6, 12)
+            xp_base = random.randint(300, 600)
+            defesa_base = random.randint(10, 25)
+            gold_base = random.randint(50, 280)
     else:
         return None
+
+    hp_max = int(hp_max_base * multiplicador_dif)
+    atk = int(atk_base * multiplicador_dif)
+    defesa = int(defesa_base * multiplicador_dif)
+    xp = int(xp_base * multiplicador_dif)
+    niv = niv_base
+    gold = gold_base
 
     return inimigo(
         nome=nome,

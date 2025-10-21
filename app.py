@@ -27,12 +27,13 @@ def menu_inicial(x_l, y_l):
         with term.location(x=x_l+27, y=y_l+herd+5):
             escolha = input(">")
         if escolha == "1":
+            dificuldade_key = escolher_dificudade(x_l, y_l, menu_art)
             nome = solicitar_nome(x_l, y_l, menu_art)
             skin_arte, cor_final, skin_nome = escolher_personagem(x_l, y_l) 
             jj = jogador(
                 nome=nome,
-                hp_max=75,
-                atk=10,
+                hp_max=50,
+                atk=5,
                 niv=1,
                 xp_max=100,
                 defesa=0,
@@ -40,11 +41,14 @@ def menu_inicial(x_l, y_l):
                 stm_max=100,
                 intt=0,
                 mn_max=50,
-                d_m=15,
+                d_m=10,
                 art_player=skin_arte, 
                 skin=cor_final,     
                 skin_nome=skin_nome 
             )
+            jj.dificuldade_atual = dificuldade_key
+            clear()
+            jj.up(x=x_l, y=y_l, werd=35, herd=15, x_i=-34)
             mini_mapa(
                 x_l=0,
                 y_l=0,
@@ -95,9 +99,9 @@ def solicitar_nome(x_l, y_l, menu_art):
         prompt = "Qual será seu Nome:\n(max 8 caracteres)"
         num_linhas = prompt.count("\n") + 4
         draw_window(term, x=x_l, y=y_l, width=90, height=24, text_content=menu_art)
-        draw_window(term, x=x_l+25, y=y_l+num_linhas+3, width=27, height=num_linhas, text_content=prompt)
+        draw_window(term, x=x_l+25, y=y_l+num_linhas+2, width=27, height=num_linhas, text_content=prompt)
 
-        with term.location(x=x_l+26, y=y_l+num_linhas+6):
+        with term.location(x=x_l+26, y=y_l+num_linhas+5):
             nome = input(">")
 
         if len(nome) > 8:
@@ -165,5 +169,26 @@ def escolher_cor(caractere, x_l, y_l):
 def mostrar_mensagem(x, y, mensagem):
     with term.location(x, y):
         print(mensagem)
+
+def escolher_dificudade(x_l, y_l, menu_art):
+    while True:
+        clear()
+        prompt = "Escolha a Dificuldade\n[1] Fácil (x0.5)\n[2] Normal (x1.0)\n[3] Difícil (x2.0)"
+        num_linhas = prompt.count("\n") + 4        
+        draw_window(term, x=x_l, y=y_l, width=90, height=24, text_content=menu_art)
+        draw_window(term, x=x_l+25, y=y_l+num_linhas+1, width=27, height=num_linhas, text_content=prompt)
+
+        with term.location(x=x_l+26, y=y_l+num_linhas+6):
+            dif = input(">")
+            
+        if dif == '1':
+            return 'Facil'
+        elif dif == '2':
+            return 'Normal'
+        elif dif == '3':
+            return 'Dificil'
+        else:
+            mostrar_mensagem(x_l+26, y_l+num_linhas+6, "Opção inválida. Use 1, 2 ou 3.")
+
 
 menu_inicial(x_l=0, y_l=0)

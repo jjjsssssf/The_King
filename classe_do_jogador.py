@@ -1,5 +1,5 @@
 import random, os, time, json
-from classe_arts import draw_window, linha_inven, linhas, linhas_batalha, clear, art_ascii, clear_region_a
+from classe_arts import draw_window,clear, art_ascii, clear_region_a
 from classe_do_inventario import Item, TODOS_OS_ITENS, magias, TODAS_AS_MAGIAS
 from collections import defaultdict
 from blessed import Terminal
@@ -282,7 +282,7 @@ Digite Nome e Quantidade"""
                     else:
                         attr_name, display_name = STATUS_MAP[stat_name]
                         current_value = getattr(self, attr_name)
-                        setattr(self, attr_name, current_value + (amount * 2))
+                        setattr(self, attr_name, current_value + (amount * 3))
                         self.ponto -= amount
                         msg = f"Você melhorou seu {display_name}"
                 else:

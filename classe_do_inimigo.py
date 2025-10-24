@@ -2,14 +2,6 @@ from classe_arts import draw_window, term, art_ascii
 import random, os, time
 def clear():
     os.system("cls" if os.name == "nt" else "clear")
-def linhas():
-    print("<<"+"="*25+">>")
-def linha_inven():
-    print("++"+"/"*30+"++")
-def linhas_batalha():
-    print("##"+"-"*25+"##")
-def linhas_jogo():
-    print("xX"+"="*40+"Xx")
 
 class inimigo:
     def __init__(self, nome, hp_max, atk, niv, xp, defesa, gold, art_ascii, atk1, atk2):

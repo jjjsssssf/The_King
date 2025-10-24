@@ -1,4 +1,4 @@
-from jogo import mini_mapa, carregar_mapa_estado
+from jogo import mini_mapa, carregar_mapa_estado, limpar_todos_os_saves, limpar_todos_os_saves_p, carregar_jogo_global
 from classe_arts import draw_window, term, clear, mini_mapa_
 import random, time, string
 from classe_do_jogador import jogador
@@ -27,6 +27,8 @@ def menu_inicial(x_l, y_l):
         with term.location(x=x_l+27, y=y_l+herd+5):
             escolha = input(">")
         if escolha == "1":
+            limpar_todos_os_saves()
+            limpar_todos_os_saves_p()
             dificuldade_key = escolher_dificudade(x_l, y_l, menu_art)
             nome = solicitar_nome(x_l, y_l, menu_art)
             skin_arte, cor_final, skin_nome = escolher_personagem(x_l, y_l) 
@@ -55,6 +57,10 @@ def menu_inicial(x_l, y_l):
                 jj.ponto += 5
             clear()
             jj.up(x=x_l, y=y_l, werd=35, herd=15, x_i=-34)
+            obs = {'#', 'H', '♣', '/', 'K', '~', '&'}
+            cor = {'#':term.gray, 'H':term.gray, '♣': term.green, '/':term.bold_brown, 'K':term.yellow, '~':term.blue, '"': term.green, '\\': term.brown, '&': term.bold_blue
+            }
+            
             mini_mapa(
                 x_l=0,
                 y_l=0,
@@ -63,22 +69,27 @@ def menu_inicial(x_l, y_l):
                 mapas_=mapas.castelo.split('\n'),
                 camera_w=35,
                 camera_h=15,
-                x_p=5,
-                y_p=3,
+                x_p=3,
+                y_p=2,
                 menager="",
-                mapa_nome='castelo',
-                carregar_estado=False)
+                mapa_nome='Pantano de Argos',
+                obstaculos_custom=obs,
+                cores_custom=cor)
 
         elif escolha == "2":
-            player_carregado = jogador.load_game(filename="demo.json")
-            
+            # Carrega o jogo global (player + mapas)
+            player_carregado, mapas_carregados = carregar_jogo_global(filename="save_global.json")
             if player_carregado:
                 jj = player_carregado
+                ESTADO_MAPAS = mapas_carregados
+
                 mapa_nome_load = jj.mapa_atual
                 mapa_art_para_load = {
-                    "castelo": mapas.castelo.split('\n'),
+                    "Castelo de Argos 2": mapas.castelo_1.split('\n'),
+                    "Castelo de Argos": mapas.castelo.split('\n'),
+                    "Pantano de Argos": mapas.inicil.split('\n')
                 }.get(mapa_nome_load, mapas.castelo.split('\n'))
-                
+
                 x_p_load = jj.x_mapa
                 y_p_load = jj.y_mapa
                 mini_mapa(
@@ -93,11 +104,16 @@ def menu_inicial(x_l, y_l):
                     y_p=y_p_load,
                     menager="",
                     mapa_nome=mapa_nome_load,
-                    carregar_estado=True
+                    obstaculos_custom=None,
+                    cores_custom=None,
+                    ESTADO_GLOBAL_LOAD=mapas_carregados
+
                 )
-            
             else:
-                pass 
+                with term.location(x_l+27, y=y_l+herd+6):
+                    print(term.red("Nenhum save encontrado!"))
+                    input("Pressione ENTER para continuar...")
+
         elif escolha == "3":
             exit()
 

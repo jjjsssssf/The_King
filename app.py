@@ -66,7 +66,7 @@ def menu_inicial(x_l, y_l):
                 y_l=0,
                 player=jj,
                 ascii=ascii,
-                mapas_=mapas.castelo.split('\n'),
+                mapas_=mapas.inicil.split('\n'),
                 camera_w=35,
                 camera_h=15,
                 x_p=3,
@@ -74,10 +74,9 @@ def menu_inicial(x_l, y_l):
                 menager="",
                 mapa_nome='Pantano de Argos',
                 obstaculos_custom=obs,
-                cores_custom=cor)
+                cores_custom=cor,)
 
         elif escolha == "2":
-            # Carrega o jogo global (player + mapas)
             player_carregado, mapas_carregados = carregar_jogo_global(filename="save_global.json")
             if player_carregado:
                 jj = player_carregado

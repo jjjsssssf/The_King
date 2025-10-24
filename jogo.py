@@ -333,6 +333,19 @@ def mini_mapa(
         max_width = max(len(l) for l in raw_map_lines if l.strip())
         mapa_art = [l.ljust(max_width) for l in raw_map_lines if l.strip()]
 
+        ESTADO_MAPAS[mapa_id] = {
+            "mapa_art": mapa_art,
+            "inimigos_derrotados": set(),
+            "baus_abertos": set(),
+            "interacoes": {},
+            "obstaculos": obstaculos_custom or set(),
+            "cores": cores_custom or {},
+            "caracteres_aleatorios": [],
+            "chaves_pegas": set(),
+            "abrir_porta": set(),
+        }
+
+
 
     player.x_mapa = x_p
     player.y_mapa = y_p

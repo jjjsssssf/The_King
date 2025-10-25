@@ -204,8 +204,10 @@ def carregar_jogo_global(filename="save_global.json"):
         return None, {}
 
 def adicionar_caracteres_aleatorios(mapa_id, estado_mapa, caracteres_quantidades, seed=None):
-    if "caracteres_aleatorios" in estado_mapa:
+    # Só não adiciona se já houver caracteres anteriores
+    if estado_mapa.get("caracteres_aleatorios"):
         return 
+
     if seed is not None:
         random.seed(seed)
 
@@ -220,9 +222,7 @@ def adicionar_caracteres_aleatorios(mapa_id, estado_mapa, caracteres_quantidades
     ]
     random.shuffle(posicoes_validas)
     total_caracteres = sum(caracteres_quantidades.values())
-    if total_caracteres > len(posicoes_validas):
-        total_caracteres = len(posicoes_validas)  
-        print("")
+    total_caracteres = min(total_caracteres, len(posicoes_validas))
 
     caracteres_colocados = []
     pos_index = 0
@@ -236,10 +236,13 @@ def adicionar_caracteres_aleatorios(mapa_id, estado_mapa, caracteres_quantidades
 
             linha_antiga = mapa_art[y]
             mapa_art[y] = linha_antiga[:x] + char + linha_antiga[x+1:]
-
             caracteres_colocados.append((x, y, char))
 
     estado_mapa["caracteres_aleatorios"] = caracteres_colocados
+    estado_mapa["mapa_art"] = mapa_art  # Atualiza o mapa com os novos caracteres
+
+    # Garante persistência
+    salvar_mapa_estado(f"save_mapa_{mapa_id}.json", mapa_id, estado_mapa)
 
 from collections import deque
 
@@ -308,9 +311,10 @@ def mini_mapa(
 
     estado_carregado = ESTADO_MAPAS.get(mapa_id)
     
+    save_filename = f"save_mapa_{mapa_id}.json"
     if estado_carregado is None:
-        save_filename = f"save_mapa_{mapa_id}.json"
         estado_carregado = carregar_mapa_estado(save_filename)
+
 
     if estado_carregado:
         ESTADO_MAPAS[mapa_id] = {
@@ -344,8 +348,6 @@ def mini_mapa(
             "chaves_pegas": set(),
             "abrir_porta": set(),
         }
-
-
 
     player.x_mapa = x_p
     player.y_mapa = y_p
@@ -510,9 +512,13 @@ def mini_mapa(
                 player.gerenciar_loja(x=0, y=0, largura=30)
             
         if mapas_ == mapas.inicil.split('\n'):
+            for px, py, ch in proximos:
+                if ch == "&":
+                    fala = f"Você deve tomar cuidado com\noque tens nesse castelo.\nsem um rei o castelo não funciona"
+                    falas(menager=fala)
             if player.x_mapa == 28 and player.y_mapa == 5:
                 obs = {'#', 'G', 'F', '/', 'B',}
-                cur = {'#':term.gray, 'G':term.red, 'F':term.green, '\\':term.brown, 'B':term.bold_brown}
+                cur = {'#':term.gray, 'G':term.red, 'F':term.green, '\\':term.brown, 'B':term.bold_brown, "W":term.black_on_white}
                 mini_mapa(
 x_l=0,
 y_l=0,
@@ -536,8 +542,8 @@ cores_custom=cur
             mover_inimigos_para_jogador(mapa_art, player=player, obstaculos=obstaculos_inimigo, inimigo_chars=inimigo_chars, estado_mapa=ESTADO_MAPAS[mapa_id], raio_visao=5)
             salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
             if player.x_mapa == 17 and player.y_mapa == 11:
-                obs = {'#', 'G', 'F', '/', 'B',}
-                cur = {'#':term.gray, 'G':term.red, 'F':term.green, '\\':term.brown, 'B':term.bold_brown}
+                obs = {'#', 'G', 'F', '/', 'B', '&'}
+                cur = {'#':term.gray, 'G':term.red, 'F':term.green, '\\':term.brown, 'B':term.bold_brown, "&":term.bold_purple, "W":term.black_on_white}
                 mini_mapa(
 x_l=0,
 y_l=0,
@@ -552,7 +558,37 @@ menager="",
 mapa_nome='Castelo de Argos 2',
 obstaculos_custom=obs,
 cores_custom=cur )
- 
+        
+        elif mapas_ == mapas.castelo_1.split("\n"):
+            adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'G':5, 'F':5, "B":3})
+            obstaculos_inimigo = ['#','\\', 'G', 'F', 'B', f'{player.skin}', 'V', 'M', '/']
+            inimigo_chars = ["F","G"]
+            mover_inimigos_para_jogador(mapa_art, player=player, obstaculos=obstaculos_inimigo, inimigo_chars=inimigo_chars, estado_mapa=ESTADO_MAPAS[mapa_id], raio_visao=5)
+            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+            for px, py, ch in proximos:
+                if ch == "&":
+                    fala = f"No proximo andar do Castelo\nestara em uma sala\nsozinho o vasalo de Argos\no leal Algustin."
+                    falas(menager=fala)
+            if player.x_mapa == 75 and player.y_mapa == 21:
+                obs = {'#', 'G', 'F', '/', 'B',}
+                cur = {'#':term.gray, 'G':term.red, 'F':term.green, '\\':term.brown, 'B':term.bold_brown, "W":term.black_on_white}
+                mini_mapa(
+x_l=0,
+y_l=0,
+player=player,
+ascii=ascii,
+mapas_=mapas.castelo.split('\n'),
+camera_w=35,
+camera_h=15,
+x_p=17,
+y_p=10,
+menager="",
+mapa_nome='Castelo de Argos',
+obstaculos_custom=obs,
+cores_custom=cur 
+                )
+
+
         if feedback_message:
             with term.location(0, CAMERA_HEIGHT + y_l + 4):
                 print(term.red(feedback_message))

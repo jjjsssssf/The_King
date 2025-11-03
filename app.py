@@ -3,6 +3,7 @@ from classe_arts import draw_window, term, clear, mini_mapa_
 import random, time, string
 from classe_do_jogador import jogador
 from classe_do_inimigo import inimigo
+from maps import *
 from classe_arts import art_ascii, Cores
 from mm import tocar_musica, escolher_e_tocar_musica, parar_musica, tocando_musica
 from classe_do_inventario import TODOS_OS_ITENS
@@ -34,7 +35,7 @@ def menu_inicial(x_l, y_l):
             skin_arte, cor_final, skin_nome = escolher_personagem(x_l, y_l) 
             jj = jogador(
                 nome=nome,
-                hp_max=50,
+                hp_max=30,
                 atk=5,
                 niv=1,
                 xp_max=100,
@@ -57,25 +58,21 @@ def menu_inicial(x_l, y_l):
                 jj.ponto += 5
             clear()
             jj.up(x=x_l, y=y_l, werd=35, herd=15, x_i=-34)
-            obs = {'#', 'H', '♣', '/', 'K', '~', '&'}
-            cor = {'#':term.gray, 'H':term.gray, '♣': term.green, '/':term.bold_brown, 'K':term.yellow, '~':term.blue, '"': term.green, '\\': term.brown, '&': term.bold_blue
-            }
-            
+            config = mapa_prai()
+            jj.inventario.append(TODOS_OS_ITENS['Machado'])
+            jj.inventario.append(TODOS_OS_ITENS['Picareta'])
             mini_mapa(
-                x_l=0,
-                y_l=0,
-                player=jj,
-                ascii=ascii,
-                mapas_=mapas.inicil.split('\n'),
-                camera_w=35,
-                camera_h=15,
-                x_p=3,
-                y_p=2,
-                menager="",
-                mapa_nome='Pantano de Argos',
-                obstaculos_custom=obs,
-                cores_custom=cor,)
-
+            x_l=0, y_l=0,
+            player=jj,
+            mapas_=config["mapa"],
+            camera_w=35, camera_h=15,
+            x_p=37, y_p=18,
+            menager="",
+            cores_custom=config["cores"],
+            obstaculos_custom=config["obstaculos"],
+            mapa_nome=config["nome"]
+            )
+                
         elif escolha == "2":
             player_carregado, mapas_carregados = carregar_jogo_global(filename="save_global.json")
             if player_carregado:
@@ -84,10 +81,10 @@ def menu_inicial(x_l, y_l):
 
                 mapa_nome_load = jj.mapa_atual
                 mapa_art_para_load = {
-                    "Castelo de Argos 2": mapas.castelo_1.split('\n'),
-                    "Castelo de Argos": mapas.castelo.split('\n'),
-                    "Pantano de Argos": mapas.inicil.split('\n')
-                }.get(mapa_nome_load, mapas.castelo.split('\n'))
+                    f"Caverna-[{player_b.andar}]": mapas.caverna2.split('\n'),
+                    f"Caverna-[{player_b.andar}]": mapas.caverna.split('\n'),
+                    "Praia": mapas.praia.split('\n')
+                }.get(mapa_nome_load, mapas.praia.split('\n'))
 
                 x_p_load = jj.x_mapa
                 y_p_load = jj.y_mapa
@@ -95,7 +92,6 @@ def menu_inicial(x_l, y_l):
                     x_l=0,
                     y_l=0,
                     player=jj,
-                    ascii=ascii,
                     mapas_=mapa_art_para_load,
                     camera_w=35,
                     camera_h=15,
@@ -212,6 +208,5 @@ def escolher_dificudade(x_l, y_l, menu_art):
             return 'Dificil'
         else:
             mostrar_mensagem(x_l+26, y_l+num_linhas+6, "Opção inválida. Use 1, 2 ou 3.")
-
 
 menu_inicial(x_l=0, y_l=0)

@@ -1,13 +1,13 @@
 import random, os, time, json
 from classe_arts import draw_window,clear, art_ascii, clear_region_a
-from classe_do_inventario import Item, TODOS_OS_ITENS, magias, TODAS_AS_MAGIAS
+from classe_do_inventario import Item, TODOS_OS_ITENS, magias, TODAS_AS_MAGIAS, RECEITAS
 from collections import defaultdict
 from blessed import Terminal
 term = Terminal()
 art= art_ascii()
 ##ARQUIVO DO JOGADOR
 class jogador:
-    def __init__(self, nome, hp_max, atk, niv, xp_max, defesa, gold, stm_max, intt, mn_max, d_m, art_player, skin, skin_nome, mana_lit=None):
+    def __init__(self, nome, hp_max, atk, niv, xp_max, defesa, gold, stm_max, intt, mn_max, d_m, art_player,skin, skin_nome, mana_lit=None):
         self.nome = nome
         self.skin = skin
         self.skin_nome = skin_nome
@@ -19,10 +19,11 @@ class jogador:
         self.stm_max = stm_max
         self.stm = self.stm_max
         self.atk = atk
-        self.buff_atk = 0
-        self.buff_def = 0
+        self.andar = 1
         self.intt = intt
         self.niv = niv
+        self.buff_atk = 0
+        self.buff_def = 0
         self.ponto = 0
         self.xp_max = xp_max
         self.dano_magico = d_m
@@ -48,109 +49,23 @@ class jogador:
             "m_seg": None,
             "c_cap": None,
             "p_pet": None,
-            "s_crad": None,
         }
+        self.matariais = {
+            'slots':{
+                'slot_1': None,
+                'slot_2': None,
+                'slot_3': None,
+                'slot_4': None,
+            }
+        }
+        
         self.itens_coletaodos = {
-            "item_1": True,
+            "item_1": False,
             "item_2": False,
             "Farol": False,
             "Dentro_Farol": False,
         }
         self.classe = None 
-
-    def save_game(self, filename="demo.json"):
-        inventario_nomes = [item.nome for item in self.inventario]
-        equipa_nomes = {slot: item.nome if item else None for slot, item in self.equipa.items()}
-        player_data = {
-            "nome": self.nome,
-            "hp_max": self.hp_max,
-            "hp": self.hp,
-            "atk": self.atk,
-            "niv": self.niv,
-            "xp_max": self.xp_max,
-            "defesa": self.defesa,
-            "gold": self.gold,
-            "stm_max": self.stm_max,
-            "stm": self.stm,
-            "intt": self.intt,
-            "mn_max": self.mana_max,
-            "mana": self.mana,
-            "d_m": self.dano_magico,
-            "xp": self.xp,
-            "aleatorio": self.aleatorio,
-            "inventario": inventario_nomes,
-            "mana_lit": self.mana_lit,
-            "equipa": equipa_nomes,
-            "itens_coletaodos": self.itens_coletaodos,
-            "rodar": self.rodar_jogo,
-            "classes": self.classe,
-            "pos_x": self.x_mapa,
-            "pos_y": self.y_mapa,
-            "mapa_atual": self.mapa_atual,
-            "char_skin": self.skin,  # Caractere colorido
-            "art_player_nome": self.skin_nome, # Nome da arte ASCII
-        }
-        try:
-            with open(filename, 'w', encoding='utf-8') as f:
-                json.dump(player_data, f, indent=4)
-            print(f"Jogo salvo com sucesso em '{filename}'")
-        except IOError as e:
-            print(f"Erro ao salvar o jogo: {e}")
-
-    @classmethod
-    def load_game(cls, filename="demo.json"):
-        if not os.path.exists(filename):
-            print(f"Nenhum arquivo de salvamento encontrado em '{filename}'.")
-            return None
-        try:
-            with open(filename, 'r', encoding='utf-8') as f:
-                player_data = json.load(f)
-            SKIN_MAP = {
-                "necro": art.necro,
-                "guerreiro": art.guerriro,
-                "mago": art.mago
-            }
-            skin_nome_carregado = player_data.get("art_player_nome")
-            skin_arte_carregada = SKIN_MAP.get(skin_nome_carregado) or None
-
-            player = cls(
-                nome=player_data["nome"],
-                hp_max=player_data["hp_max"],
-                atk=player_data["atk"],
-                niv=player_data["niv"],
-                xp_max=player_data["xp_max"],
-                defesa=player_data["defesa"],
-                gold=player_data["gold"],
-                stm_max=player_data["stm_max"],
-                intt=player_data["intt"],
-                mn_max=player_data["mn_max"],
-                d_m=player_data["d_m"],
-                art_player=skin_arte_carregada,
-                skin=player_data.get("char_skin", "@"),
-                skin_nome=skin_nome_carregado,
-            )
-
-            player.inventario = [TODOS_OS_ITENS[nome] for nome in player_data.get("inventario", []) if nome in TODOS_OS_ITENS]
-            player.equipa = {slot: TODOS_OS_ITENS[nome] if nome and nome in TODOS_OS_ITENS else None for slot, nome in player_data.get("equipa", {}).items()}
-
-            player.hp = player_data["hp"]
-            player.aleatorio = player_data["aleatorio"]
-            player.mana_lit = player_data.get("mana_lit", [])
-            player.itens_coletaodos = player_data.get("itens_coletaodos", {})
-            player.xp = player_data["xp"]
-            player.mana = player_data["mana"]
-            player.stm = player_data["stm"]
-            player.rodar_jogo = player_data["rodar"]
-            player.classe = player_data["classes"]
-            player.x_mapa = player_data.get("pos_x", 0)
-            player.y_mapa = player_data.get("pos_y", 0)
-            player.mapa_atual = player_data.get("mapa_atual", "castelo_1")
-
-            print(f"Jogo carregado com sucesso de '{filename}'!")
-            return player
-        except (IOError, json.JSONDecodeError, KeyError) as e:
-            print(f"Erro ao carregar o jogo: {e}.")
-            return None    
 
     def barra_de_vida(self, x_l, y_l, largura=25):
         proporcao_hp = max(0, min(self.hp / self.hp_max, 1))
@@ -196,6 +111,15 @@ class jogador:
             print(f"X: [{term.bold_blue(str(self.x_mapa))}] - Y: [{term.bold_red(str(self.y_mapa))}]")
         with term.location(x=x_l, y=y_l+7):
             print(f"Dificudade: [{self.dificuldade_atual}]")
+        y_mat = y_l + 8
+        with term.location(x=x_l, y=y_mat):
+            print(term.bold_white("Materiais Equipados:"))
+        for i in range(1, 5):
+            slot_nome = f"slot_{i}"
+            item_slot = self.matariais['slots'][slot_nome]
+            nome = item_slot.nome if item_slot else "Vazio"
+            with term.location(x=x_l, y=y_mat + i):
+                print(f"[{i}] {nome}")
 
     def status_art(self ,x_janela, y_janela):
         art_player = self.art_player
@@ -222,10 +146,10 @@ class jogador:
         while self.xp >= self.xp_max:
             print(term.bold_white("Você subiu de nível!"))
             xp_remaining = self.xp - self.xp_max
-            self.xp_max = int(self.xp_max * 1.2)
+            self.xp_max = int(self.xp_max * 1.5)
             self.xp = xp_remaining
             self.niv += 1
-            self.ponto += 5
+            self.ponto += 3
             self.stm = self.stm_max
             time.sleep(1)
         print(f"Você ganhou {xp_ganho} de XP. Total: {self.xp}/{self.xp_max}")
@@ -254,16 +178,17 @@ DEF: [{self.defesa}]
 MG: [{self.mana_max}]
 MA: [{self.dano_magico}]
 INT: [{self.intt}]
+
 Digite Nome e Quantidade"""
 
             draw_window(term, x=x, y=y, width=werd, height=herd, text_content=mensagem)
 
             if self.ponto >= 1:
-                with term.location(x=werd+x_i, y=herd-5):
+                with term.location(x=werd+x_i, y=herd-6):
                     up_input = input(">").strip().upper()
             else:
-                with term.location(x=werd+x_i, y=herd-5):
-                    print("Você não tem Pontos para melhorar.")
+                with term.location(x=werd+x_i, y=herd-6):
+                    print("Você não tem Pontos")
                     input()
                     break
 
@@ -282,7 +207,7 @@ Digite Nome e Quantidade"""
                     else:
                         attr_name, display_name = STATUS_MAP[stat_name]
                         current_value = getattr(self, attr_name)
-                        setattr(self, attr_name, current_value + (amount * 3))
+                        setattr(self, attr_name, current_value + (amount * 2))
                         self.ponto -= amount
                         msg = f"Você melhorou seu {display_name}"
                 else:
@@ -290,9 +215,9 @@ Digite Nome e Quantidade"""
             else:
                 msg = "Formato inválido.Use: STATUS QUANTIDADE"
 
-            with term.location(x=werd+x_i, y=herd-5):
+            with term.location(x=werd+x_i, y=herd-6):
                 print(" " * 50)
-            with term.location(x=werd+x_i, y=herd-5):
+            with term.location(x=werd+x_i, y=herd-6):
                 print(msg)
             time.sleep(2)
 
@@ -433,28 +358,6 @@ DEF: [{magia.bonus_def}]"""
         draw_window(term, x_janela, y_janela, width=35, height=herd, text_content=text_content)
         time.sleep(2)
         return sucesso
-
-    def atake(self, alvo, x_janela, y_janela):
-        atak_aleatorio = random.randint(1, 100)
-        if self.stm >= 10:
-            if self.aleatorio > atak_aleatorio:
-                self.stm -= 10
-                dano_ale = random.randint(int(self.atk - 3), int(self.atk + 3))
-                meno_defsa = alvo.defesa // 4
-                dano_final = int(self.buff_atk + dano_ale - meno_defsa)
-                if dano_final <= 0:
-                    dano_final = 1
-                mensagem = f"{str(self.nome)} deu um dano de {str(dano_final)}\nno {str(alvo.nome)}"
-                alvo.hp -= dano_final
-                time.sleep(1)
-            else:
-                mensagem = f"{self.nome} errou o ataque"
-                time.sleep(1)
-        else:
-            mensagem = "Você não tem ST suficiente"
-            time.sleep(1)
-        herd = 4
-        draw_window(term, x_janela, y_janela, width=len(mensagem)-5, height=herd, text_content=mensagem)
     
     def inventario_(self, x, y, werd, herd, batalha):
         altura_janela = 0
@@ -525,6 +428,11 @@ DEF: [{magia.bonus_def}]"""
                             alteracao_equip = self.gerenciar_equipavel(item_escolhido, x, y + altura_janela, werd)
                             if alteracao_equip:
                                 sucesso_uso = True
+                        elif item_escolhido.tipo == "Material":
+                            alteracao_material = self.gerenciar_material(item_escolhido, x, y + altura_janela, werd)
+                            if alteracao_material:
+                                sucesso_uso = True
+
                             
                 else:
                     mensagem = "Número inválido."
@@ -537,40 +445,115 @@ DEF: [{magia.bonus_def}]"""
                 time.sleep(2)
                 clear_region_a(x=x, start_y=y, end_y=y, width=werd)
 
+    def gerenciar_material(self, item, x_janela, y_janela, werd):
+        altura_opcoes = 6
+        altura_feedback = 4
+        clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd) 
+        
+        text_content = "O que deseja fazer com o material?\n[1]Equipar\n[2]Desequipar"
+        draw_window(term, x_janela, y_janela, width=werd, height=altura_opcoes, title=item.nome, text_content=text_content)
+        
+        with term.location(x_janela + 2, y_janela + altura_opcoes - 2):
+            print(" " * (werd - 4), end='\r')
+        with term.location(x_janela + 2, y_janela + altura_opcoes - 2):
+            esc = input(">")
+
+        feedback = ""
+        alteracao_efetuada = False
+
+        # EQUIPAR MATERIAL
+        if esc == "1":
+            slots = self.matariais['slots']
+            # Verifica se já está equipado
+            if any(slot and slot.nome == item.nome for slot in slots.values()):
+                feedback = f"{item.nome} já está equipado."
+            else:
+                # Encontra primeiro slot livre
+                slot_livre = next((k for k, v in slots.items() if v is None), None)
+                if slot_livre:
+                    slots[slot_livre] = item
+                    feedback = f"{item.nome} foi equipado no {slot_livre}."
+                    alteracao_efetuada = True
+                else:
+                    feedback = "Todos os slots de materiais estão ocupados."
+
+        # DESEQUIPAR MATERIAL
+        elif esc == "2":
+            slots = self.matariais['slots']
+            encontrado = False
+            for k, v in slots.items():
+                if v and v.nome == item.nome:
+                    slots[k] = None
+                    feedback = f"{item.nome} foi removido de {k}."
+                    alteracao_efetuada = True
+                    encontrado = True
+                    break
+            if not encontrado:
+                feedback = f"{item.nome} não está equipado."
+
+        else:
+            feedback = "Opção inválida."
+
+        clear_region_a(x_janela, y_janela + altura_opcoes, y_janela + altura_opcoes + altura_feedback, werd)
+        draw_window(term, x_janela, y_janela + altura_opcoes, width=werd, height=altura_feedback, text_content=feedback)
+        time.sleep(2)
+        clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd)
+        
+        return alteracao_efetuada
+
     def usar_consumivel(self, item, x_janela, y_janela, werd):
-        """Retorna True se o item foi usado e removido do inventário, False caso contrário."""
+        """Usa um item consumível genérico, aplicando todos os bônus definidos nele."""
         altura_mensagem = 3
-        clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd) 
+        clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd)
         sucesso = False
-        if item.nome == "Poção de Cura":
-            if self.hp >= self.hp_max:
-                mensagem = "Seu HP já está no máximo!"
+
+        if item.tipo != "Consumivel":
+            mensagem = "Esse item não pode ser usado!"
+        else:
+            efeitos_aplicados = []
+            
+            # HP
+            if getattr(item, "bonus_hp", 0) > 0:
+                if self.hp < self.hp_max:
+                    ganho = min(item.bonus_hp, self.hp_max - self.hp)
+                    self.hp += ganho
+                    efeitos_aplicados.append(f"+{ganho} HP")
+                    sucesso = True
+                else:
+                    efeitos_aplicados.append("HP já está cheio")
+
+            # Stamina
+            if getattr(item, "bonus_stm", 0) > 0:
+                if self.stm < self.stm_max:
+                    ganho = min(item.bonus_stm, self.stm_max - self.stm)
+                    self.stm += ganho
+                    efeitos_aplicados.append(f"+{ganho} Stamina")
+                    sucesso = True
+                else:
+                    efeitos_aplicados.append("Stamina já está cheia")
+
+            # Mana
+            if getattr(item, "bonus_mana", 0) > 0:
+                if self.mana < self.mana_max:
+                    ganho = min(item.bonus_mana, self.mana_max - self.mana)
+                    self.mana += ganho
+                    efeitos_aplicados.append(f"+{ganho} Mana")
+                    sucesso = True
+                else:
+                    efeitos_aplicados.append("Mana já está cheia")
+
+            if sucesso:
+                self.inventario.remove(item)
+                mensagem = f"Você usou {item.nome}: " + ", ".join(efeitos_aplicados)
             else:
-                self.hp = min(self.hp + item.bonus_hp, self.hp_max)
-                self.inventario.remove(item) # Remove a instância do item
-                mensagem = "Você bebeu uma poção de cura."
-                sucesso = True
-        elif item.nome == "Elixir":
-            if self.mana >= self.mana_max:
-                mensagem = "Sua Mana já está no máximo!"
-            else:
-                self.mana = min(self.mana + item.bonus_mana, self.mana_max)
-                self.inventario.remove(item) # Remove a instância do item
-                mensagem = "Você bebeu um elixir."
-                sucesso = True
-        elif item.nome == "Suco":
-            if self.stm >= self.stm_max:
-                mensagem = "Sua Stamina já está no máximo!"
-            else:
-                self.stm = min(self.stm + item.bonus_stm, self.stm_max)
-                self.inventario.remove(item) # Remove a instância do item
-                mensagem = "Você bebeu um suco."
-                sucesso = True
+                # Nenhum atributo pôde ser restaurado
+                mensagem = f"{item.nome} não teve efeito.\n(Tudo já está cheio)"
 
         draw_window(term, x_janela, y_janela, width=werd, height=altura_mensagem, text_content=mensagem)
         time.sleep(2)
-        clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd) # Limpa a mensagem
+        clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd)
         return sucesso
+
 
     def gerenciar_equipavel(self, item, x_janela, y_janela, werd):
         """Retorna True se o equipamento foi equipado/desequipado, False caso contrário."""
@@ -594,6 +577,7 @@ DEF: [{magia.bonus_def}]"""
                 self.equipa[item.slot_equip] = item
                 self.atk += item.bonus_atk
                 self.defesa += item.bonus_def
+                self.hp_max += item.bonus_hp_max
                 self.dano_magico += item.bonus_atk_mana
                 feedback = f"Você equipou {item.nome}."
                 alteracao_efetuada = True
@@ -610,6 +594,7 @@ DEF: [{magia.bonus_def}]"""
                 
                 self.equipa[item.slot_equip] = None
                 self.atk -= item_equipado.bonus_atk
+                self.hp_max -= item.bonus_hp_max
                 self.defesa -= item_equipado.bonus_def
                 self.dano_magico -= item_equipado.bonus_atk_mana
                 feedback = f"Você desequipou {item_equipado.nome}."
@@ -751,3 +736,132 @@ DEF: [{magia.bonus_def}]"""
         self.stm = self.stm_max
         self.mana = self.mana_max
         time.sleep(3)
+
+    def atake(self, alvo, x_janela, y_janela):
+        atak_aleatorio = random.randint(1, 100)
+        if self.stm >= 10:
+            if self.aleatorio > atak_aleatorio:
+                self.stm -= 10
+                dano_ale = random.randint(int(self.atk - 3), int(self.atk + 3))
+                meno_defsa = alvo.defesa // 4
+                dano_final = int(self.buff_atk + dano_ale - meno_defsa)
+                if dano_final <= 0:
+                    dano_final = 1
+                mensagem = f"{str(self.nome)} deu um dano de {str(dano_final)}\nno {str(alvo.nome)}"
+                alvo.hp -= dano_final
+                time.sleep(1)
+            else:
+                mensagem = f"{self.nome} errou o ataque"
+                time.sleep(1)
+        else:
+            mensagem = "Você não tem ST suficiente"
+            time.sleep(1)
+        herd = 4
+        draw_window(term, x_janela, y_janela, width=len(mensagem)-5, height=herd, text_content=mensagem)
+
+    def craft(self, x, y, werd, herd=None):
+        receitas_lista = list(RECEITAS.items())
+        receitas_por_pagina = 5
+        pagina = 0
+        total_paginas = (len(receitas_lista) - 1) // receitas_por_pagina + 1
+
+        while True:
+            clear()
+            inicio = pagina * receitas_por_pagina
+            fim = inicio + receitas_por_pagina
+            receitas_visiveis = receitas_lista[inicio:fim]
+
+            # Montar conteúdo
+            linhas = ["== Oficina de Craft =="]
+            for i, (nome_item, materiais) in enumerate(receitas_visiveis, start=1):
+                requisitos = ", ".join(f"{mat} x{qtd}" for mat, qtd in materiais.items())
+                linhas.append(f"[{i}] {nome_item}")
+                linhas.append(f"   {requisitos}")
+
+            linhas.append(f"\nPágina {pagina + 1}/{total_paginas}")
+            linhas.append("Digite o número da receita,\n'<' ou '>', ou 'sair'.")
+            text_content = "\n".join(linhas)
+
+            # --- 🧠 Cálculo automático da altura ---
+            linhas_contadas = len(linhas)
+            herd_auto = max(10, min(linhas_contadas + 4, 25))
+            # mínimo de 10 linhas, máximo de 25 (pode ajustar)
+            altura_janela = herd_auto if herd is None else herd_auto
+
+            draw_window(term, x=x, y=y, width=werd, height=altura_janela, title="Crafting", text_content=text_content)
+            with term.location(x + 2, y + altura_janela - 2):
+                escolha = input("> ").strip().lower()
+
+            # Sair do menu
+            if escolha == "sair":
+                return
+
+            # Navegação entre páginas
+            if escolha == ">":
+                if pagina < total_paginas - 1:
+                    pagina += 1
+                else:
+                    mensagem = "Você já está na última página."
+                    draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
+                    time.sleep(1.2)
+                continue
+
+            if escolha == "<":
+                if pagina > 0:
+                    pagina -= 1
+                else:
+                    mensagem = "Você já está na primeira página."
+                    draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
+                    time.sleep(1.2)
+                continue
+
+            # Escolher receita
+            if not escolha.isdigit():
+                mensagem = "Entrada inválida."
+                draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
+                time.sleep(1.2)
+                continue
+
+            indice_local = int(escolha) - 1
+            if indice_local < 0 or indice_local >= len(receitas_visiveis):
+                mensagem = "Número inválido nesta página."
+                draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
+                time.sleep(1.2)
+                continue
+
+            # Identificar a receita correta
+            nome_item, materiais = receitas_visiveis[indice_local]
+            faltando = []
+            for mat, qtd in materiais.items():
+                count = sum(1 for i in self.inventario if i.nome == mat)
+                if count < qtd:
+                    faltando.append(f"{mat} ({count}/{qtd})")
+
+            if faltando:
+                mensagem = "Você não possui os materiais necessários:\n" + "\n".join(faltando)
+                draw_window(term, x, y + altura_janela, width=werd, height=len(faltando) + 5, text_content=mensagem)
+                time.sleep(2)
+                continue
+
+            # Remove os materiais
+            for mat, qtd in materiais.items():
+                removidos = 0
+                for item in list(self.inventario):
+                    if item.nome == mat:
+                        self.inventario.remove(item)
+                        removidos += 1
+                        if removidos >= qtd:
+                            break
+
+            # Adiciona o novo item
+            if nome_item in TODOS_OS_ITENS:
+                novo_item = TODOS_OS_ITENS[nome_item]
+                self.inventario.append(novo_item)
+                mensagem = f"Você fabricou {nome_item}!"
+            else:
+                mensagem = f"Item '{nome_item}' não encontrado em TODOS_OS_ITENS."
+
+            draw_window(term, x, y + altura_janela, width=werd, height=4, text_content=mensagem)
+            time.sleep(2)
+
+

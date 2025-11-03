@@ -79,4 +79,3 @@ class inimigo:
             self.ataque_1(alvo, x_janela=x_janela, y_janela=y_janela)
         elif atk == "atk2":
             self.ataque_2(alvo, x_janela=x_janela, y_janela=y_janela)
-

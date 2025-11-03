@@ -8,72 +8,6 @@ ascii = art_ascii()
 player_b = jogador(nome="", hp_max=100, atk=15, niv=1, xp_max=100, defesa=10, gold=0, stm_max=100, intt=10, mn_max=100,d_m=20, art_player=ascii.necro, skin=0,skin_nome='')
 inimigo_b = inimigo(nome="", hp_max=0, atk=0, niv=0, xp=0, defesa=0, gold=0, art_ascii='',atk1="",atk2="")
 
-def seleção_inimigo(num=None):
-    try:
-        multiplicador_dif = player_b.dificuldade[player_b.dificuldade_atual]["niv"]
-    except KeyError:
-        multiplicador_dif = 1
-
-    nome = ""
-    art_ascii = ""
-    atk1 = ""
-    atk2 = ""
-    hp_max = atk = niv = xp = defesa = gold = 0
-
-    if num == 1:
-        nomes = ['Esqueleto', 'Demonio', 'Samurai']
-        nome = random.choice(nomes)
-
-        if nome == 'Esqueleto':
-            art_ascii = ascii.esqueleto
-            atk1 = "Soco"
-            atk2 = "Ossada"
-        elif nome == 'Demonio':
-            art_ascii = ascii.demoni0
-            atk1 = "Soco"
-            atk2 = "Tridente"
-        elif nome == "Samurai":
-            art_ascii = ascii.demoni1
-            atk1 = "Corte"
-            atk2 = "Espadada"
-
-        if player_b.niv <= 5:
-            hp_max_base = random.randint(50, 100)
-            atk_base = random.randint(5, 15)
-            niv_base = random.randint(1, 5)
-            xp_base = random.randint(50, 300)
-            defesa_base = random.randint(5, 15)
-            gold_base = random.randint(20, 250)
-        else:
-            hp_max_base = random.randint(200, 350)
-            atk_base = random.randint(10, 25)
-            niv_base = random.randint(6, 12)
-            xp_base = random.randint(300, 600)
-            defesa_base = random.randint(10, 25)
-            gold_base = random.randint(50, 280)
-    else:
-        return None
-
-    hp_max = int(hp_max_base * multiplicador_dif)
-    atk = int(atk_base * multiplicador_dif)
-    defesa = int(defesa_base * multiplicador_dif)
-    xp = int(xp_base * multiplicador_dif)
-    niv = niv_base
-    gold = gold_base
-
-    return inimigo(
-        nome=nome,
-        hp_max=hp_max,
-        atk=atk,
-        niv=niv,
-        xp=xp,
-        defesa=defesa,
-        gold=gold,
-        art_ascii=art_ascii,
-        atk1=atk1,
-        atk2=atk2
-    )
-
 def batalha(player_b,inimigo_b):
     parar_musica()
     escolher_e_tocar_musica("Menu_som_baia.mp3")
@@ -181,4 +115,3 @@ def batalha_cut(player_b, inimigo_b):
                     time.sleep(3)
                     parar_musica()
                     return False
-

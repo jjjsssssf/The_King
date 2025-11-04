@@ -37,6 +37,7 @@ TODOS_OS_ITENS = {
     "Milho": Item(nome="Milho", tipo="Produto", preco=25,),
     "Abobora": Item(nome="Abobora", tipo="Produto", preco=50, bonus_hp=25, bonus_stm=25),
     "Pão": Item(nome="Pão", tipo="Consumivel", preco=50, bonus_hp=50, bonus_stm=50),
+    'Poção de Cura': Item(nome="Poção de Cura", tipo="Consumivel", preco=50, bonus_hp=100),
     ##ARDUR
     "Peitoral": Item(nome="Peitoral", tipo="Equipavel", preco=150, bonus_def=5, bonus_hp_max=50,slot_equip="p_pet"),
     "Elmo": Item(nome="Elmo", tipo="Equipavel", preco=100, bonus_def=2, bonus_hp_max=25,slot_equip="c_cap"),

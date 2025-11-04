@@ -2,12 +2,13 @@ from classe_do_jogador import jogador
 from classe_do_inimigo import inimigo
 from collections import deque
 import time, random, os, json, textwrap
+from collections import Counter
 from maps import *
 from inimigo_batalha import *
 from batalha import *
 from classe_arts import draw_window,term, clear, art_ascii, Cores, mini_mapa_, dialogos, clear_region_a
 from mm import tocar_musica, escolher_e_tocar_musica, parar_musica, tocando_musica
-from classe_do_inventario import TODOS_OS_ITENS, Item
+from classe_do_inventario import *
 ##ARQUIVO DO MAPA
 mapas = mini_mapa_()
 dialogo = dialogos()
@@ -639,11 +640,15 @@ def mini_mapa(
             bau_inventario = baus_armazenamento.setdefault(pos_bau, [])
 
             def exibir_telas_bau():
-                """Desenha as três janelas: Menu, Baú e Inventário do Jogador."""
                 clear()
+                contagem_player = Counter(item.nome for item in player.inventario)
+                conteudo_player = []
+                for i, item_nome in enumerate(sorted(contagem_player.keys())):
+                    quantidade = contagem_player[item_nome]
+                    conteudo_player.append(f"{i+1}. {item_nome} ({quantidade}x)")
                 
-                # --- Desenho do Inventário do Jogador (Esquerda) ---
-                conteudo_player = "\n".join(f"{i+1}. {item.nome}" for i, item in enumerate(player.inventario)) or "Inventário vazio."
+                conteudo_player_str = "\n".join(conteudo_player) or "Inventário vazio."
+
                 draw_window(
                     term, 
                     x=x_l - 35, 
@@ -651,10 +656,8 @@ def mini_mapa(
                     width=30, 
                     height=15, 
                     title=f"Inventário de {player.nome}",
-                    text_content=conteudo_player
+                    text_content=conteudo_player_str
                 )
-
-                # --- Desenho do Menu (Centro) ---
                 menu_texto = term.bold_yellow("[1]") + " Guardar\n" + \
                              term.bold_yellow("[2]") + " Pegar\n" + \
                              term.bold_yellow("[3]") + " Sair"
@@ -667,9 +670,14 @@ def mini_mapa(
                     title=term.bold_cyan("Baú de Armazenamento"),
                     text_content=menu_texto
                 )
+                contagem_bau = Counter(item.nome for item in bau_inventario)
+                conteudo_bau = []
+                for i, item_nome in enumerate(sorted(contagem_bau.keys())):
+                    quantidade = contagem_bau[item_nome]
+                    conteudo_bau.append(f"{i+1}. {item_nome} ({quantidade}x)")
                 
-                # --- Desenho do Inventário do Baú (Direita) ---
-                conteudo_bau = "\n".join(f"{i+1}. {item.nome}" for i, item in enumerate(bau_inventario)) or "Baú vazio."
+                conteudo_bau_str = "\n".join(conteudo_bau) or "Baú vazio."
+
                 draw_window(
                     term, 
                     x=x_l + 35, 
@@ -677,7 +685,7 @@ def mini_mapa(
                     width=30, 
                     height=15, 
                     title=term.bold_green("Itens do Baú"),
-                    text_content=conteudo_bau
+                    text_content=conteudo_bau_str
                 )
 
             def processar_transferencia(origem_lista, destino_lista, titulo_escolha):
@@ -687,9 +695,16 @@ def mini_mapa(
                     return
 
                 clear()
+                contagem_origem = Counter(item.nome for item in origem_lista)
+                itens_unicos = sorted(contagem_origem.keys())
+                itens_enumerados = []
+                mapeamento_escolha = {} 
                 
-                # Exibe a lista de itens para escolha
-                itens_enumerados = "\n".join(f"{i+1}. {item.nome}" for i, item in enumerate(origem_lista))
+                for i, item_nome in enumerate(itens_unicos):
+                    quantidade = contagem_origem[item_nome]
+                    display_text = f"{i+1}. {item_nome} ({quantidade}x)"
+                    itens_enumerados.append(display_text)
+                    mapeamento_escolha[i + 1] = item_nome
                 draw_window(
                     term, 
                     x=x_l, 
@@ -697,26 +712,51 @@ def mini_mapa(
                     width=40, 
                     height=15, 
                     title=titulo_escolha,
-                    text_content=itens_enumerados
+                    text_content="\n".join(itens_enumerados)
                 )
 
                 with term.location(x=x_l, y=y_l + 16):
-                    idx_str = input(term.bold("Digite o número do item (ou C para Cancelar): ")).strip()
+                    entrada = input(term.bold("Digite [Nº Item] [Quantia] ou 0:")).strip().split()
                 
-                if idx_str.upper() == 'C':
+                if not entrada or entrada[0].upper() == 'C':
                     return
+                
+                try:
+                    idx_escolhido = int(entrada[0])
+                    quantia_desejada = int(entrada[1]) if len(entrada) > 1 else 1
                     
-                if idx_str.isdigit():
-                    idx = int(idx_str) - 1
-                    if 0 <= idx < len(origem_lista):
-                        item = origem_lista.pop(idx)
-                        destino_lista.append(item)
-                        falas(f"{item.nome} foi {'guardado no baú' if destino_lista is bau_inventario else 'pego do baú'}.")
-                        salvar_mapa_estado(save_filename, mapa_id, ESTADO)
-                    else:
-                        falas("Número de item inválido.")
+                except ValueError:
+                    falas("Entrada inválida. Use o formato: [Nº Item] [Quantia].")
+                    return
+
+                if idx_escolhido not in mapeamento_escolha:
+                    falas("Número de item inválido.")
+                    return
+
+                item_nome_selecionado = mapeamento_escolha.get(idx_escolhido)
+                
+                if quantia_desejada <= 0:
+                    falas("A quantidade deve ser maior que zero.")
+                    return
+                
+                quantia_disponivel = contagem_origem[item_nome_selecionado]
+
+                if quantia_desejada > quantia_disponivel:
+                    falas(f"Você só tem {quantia_disponivel}x de {item_nome_selecionado}.")
+                    return                
+                itens_transferidos = 0
+                for _ in range(quantia_desejada):
+                    for i, item_obj in enumerate(origem_lista):
+                        if item_obj.nome == item_nome_selecionado:
+                            item = origem_lista.pop(i)
+                            destino_lista.append(item)
+                            itens_transferidos += 1
+                
+                if itens_transferidos > 0:
+                    falas(f"{itens_transferidos}x {item_nome_selecionado} foram {'guardados no baú' if destino_lista is bau_inventario else 'pegos do baú'}.")
+                    salvar_mapa_estado(save_filename, mapa_id, ESTADO)
                 else:
-                    falas("Entrada inválida. Tente novamente.")
+                    falas("Não foi possível transferir o item.")
 
             while True:
                 exibir_telas_bau()
@@ -846,9 +886,8 @@ def mini_mapa(
                     if ch == "%":
                         limpar_todas_caverna()
                         mapas_aleatorio(player)
-                
-                
             adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'♠':10})
+            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
 
         elif mapas_ == mapas.caverna.split("\n"):
             adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'o': 25, 'G': 5, 'F': 5, 'B': 5, '!': 1})

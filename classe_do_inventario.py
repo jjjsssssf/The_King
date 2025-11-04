@@ -2,7 +2,7 @@ from collections import defaultdict
 
 class Item:
     """Representa um item no jogo."""
-    def __init__(self, nome, tipo, bonus_hp=0, bonus_stm = 0,bonus_mana=0, bonus_atk=0, bonus_def=0, bonus_atk_mana=0, bonus_hp_max=0,preco=0, slot_equip=None, vendivel=True, comprável=True):
+    def __init__(self, nome, tipo,bonus_hp=0, bonus_stm = 0,bonus_mana=0, bonus_atk=0, bonus_def=0, bonus_atk_mana=0, bonus_hp_max=0,preco=0, slot_equip=None, vendivel=True, comprável=True):
         self.nome = nome
         self.vendivel = vendivel
         self.comprável = comprável
@@ -29,12 +29,13 @@ TODOS_OS_ITENS = {
     'Machado': Item(nome='Machado', tipo='Equipavel', preco=100, bonus_atk=2, slot_equip="m_pri"),
     ##CONS
     "Fruta": Item(nome="Fruta", tipo="Consumivel", preco=50, bonus_hp=25, bonus_stm=25),
+    'Bolo de Milho': Item(nome="Bolo de Milho", tipo="Consumivel", preco=50, bonus_hp=25, bonus_stm=25),
     "Elixir": Item(nome="Elixir", tipo="Consumivel", preco=50, bonus_mana=50),
     "Suco": Item(nome="Suco", tipo="Consumivel", preco=50, bonus_stm=50),
     "Cura Total":Item(nome="Cura Total", tipo="Consumivel", preco=1000, bonus_hp=50, bonus_mana=50),
-    "Trigo": Item(nome="Trigo", tipo="Material", preco=10),
-    "Milho": Item(nome="Milho", tipo="Consumivel", preco=25, bonus_hp=10, bonus_stm=25),
-    "Abobora": Item(nome="Abobora", tipo="Consumivel", preco=50, bonus_hp=25, bonus_stm=25),
+    "Trigo": Item(nome="Trigo", tipo="Produto", preco=10),
+    "Milho": Item(nome="Milho", tipo="Produto", preco=25,),
+    "Abobora": Item(nome="Abobora", tipo="Produto", preco=50, bonus_hp=25, bonus_stm=25),
     "Pão": Item(nome="Pão", tipo="Consumivel", preco=50, bonus_hp=50, bonus_stm=50),
     ##ARDUR
     "Peitoral": Item(nome="Peitoral", tipo="Equipavel", preco=150, bonus_def=5, bonus_hp_max=50,slot_equip="p_pet"),
@@ -44,6 +45,7 @@ TODOS_OS_ITENS = {
     "Chave do Dragão": Item(nome='Chave do Dragão', tipo="Chave", preco=0, vendivel=False, comprável=False),
     ##Coletaveis
     "Madeira": Item(nome="Madeira", tipo="Material", slot_equip="slots"),
+    "Bau": Item(nome="Bau", tipo="Material", slot_equip="slots"),
     "Pedra": Item(nome="Pedra", tipo="Material", slot_equip="slots"),
     "Bancada": Item(nome="Bancada", tipo="Material", slot_equip="slots"),
     "Semente/Trigo": Item(nome="Semente/Trigo", tipo="Material", slot_equip="slots"),
@@ -60,6 +62,25 @@ RECEITAS = {
     'Enchada':{
     'Madeira': 2,
     'Pedra': 3
+    },
+    'Pá':{
+    'Madeira': 2,
+    'Pedra': 3
+    },
+    'Espada':{
+    'Pedra': 5,
+    'Graveto': 5
+    },
+    'Bolo de Milho':{
+    'Milho': 5
+    },
+    'Machado': {
+    'Madeira': 5,
+    'Pedra': 5
+    }, 
+    'Bau': {
+    'Madeira':5,
+    'Pedra': 1
     }
 
 }

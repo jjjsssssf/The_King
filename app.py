@@ -50,16 +50,7 @@ def menu_inicial(x_l, y_l):
                 skin_nome=skin_nome 
             )
             jj.dificuldade_atual = dificuldade_key
-            if jj.dificuldade_atual == 'Facil':
-                jj.ponto += 15
-            elif jj.dificuldade_atual == 'Normal':
-                jj.ponto += 10
-            elif jj.dificuldade_atual == 'Dificil':
-                jj.ponto += 5
-            clear()
-            jj.up(x=x_l, y=y_l, werd=35, herd=15, x_i=-34)
             config = mapa_prai()
-            jj.inventario.append(TODOS_OS_ITENS['Machado'])
             jj.inventario.append(TODOS_OS_ITENS['Picareta'])
             mini_mapa(
             x_l=0, y_l=0,

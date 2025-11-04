@@ -38,42 +38,50 @@ def limpar_todos_os_saves_p():
             print(f"Erro ao remover {save_file}: {e}")
 
 def serializar_para_json(data):
-    """Converte sets para listas e chaves de tupla (x, y) para strings 'x,y'."""
     if isinstance(data, dict):
         novo_dicionario = {}
         for k, v in data.items():
-            # 1. Converte chaves de tupla (coordenadas) para string
             if isinstance(k, tuple):
                 k = f"{k[0]},{k[1]}"
-            # 2. Continua recursivamente para os valores
             novo_dicionario[k] = serializar_para_json(v)
         return novo_dicionario
+        
     elif isinstance(data, list):
-        # Continua recursivamente para itens da lista
         return [serializar_para_json(item) for item in data]
+        
     elif isinstance(data, set):
-        # 3. Converte sets para listas (obrigatório para JSON)
         return list(data)
+    elif hasattr(data, '__class__') and data.__class__.__name__ == 'Item':
+        return {
+            "__class__": "Item", 
+            "nome": data.nome
+        }
+    
     else:
         return data
 
 def deserializar_do_json(data):
-    """Converte strings 'x,y' de volta para tuplas (x, y)."""
+    if isinstance(data, dict) and data.get("__class__") == "Item":
+        item_nome = data.get("nome")
+        if item_nome and item_nome in TODOS_OS_ITENS:
+            return TODOS_OS_ITENS[item_nome]
+        else:
+            print(f"⚠️ Aviso: Item '{item_nome}' não encontrado em TODOS_OS_ITENS durante o load.")
+            return None
     if isinstance(data, dict):
         novo_dicionario = {}
         for k, v in data.items():
-            # 1. Converte chaves de string 'x,y' de volta para tupla
-            if isinstance(k, str) and ',' in k and k.replace(',', '').isdigit():
+            if isinstance(k, str) and ',' in k and all(part.strip().isdigit() for part in k.split(',')):
                 try:
                     k = tuple(map(int, k.split(',')))
                 except ValueError:
-                    # Caso a string contenha algo além de números e vírgula
-                    pass 
-            # 2. Continua recursivamente para os valores
+                    pass                     
             novo_dicionario[k] = deserializar_do_json(v)
         return novo_dicionario
+        
     elif isinstance(data, list):
         return [deserializar_do_json(item) for item in data]
+        
     else:
         return data
 
@@ -94,6 +102,7 @@ def salvar_mapa_estado(filename, mapa_id, estado_mapa):
             "regeneracoes": estado_mapa.get("regeneracoes", {}),  # <-- adicionado corretamente
             "interacoes": estado_mapa.get("interacoes", {}),
             "caracteres_aleatorios": estado_mapa.get("caracteres_aleatorios", []),
+            "baus_armazenamento": estado_mapa.get("baus_armazenamento", {}),
         }
 
         with open(filename, 'w', encoding='utf-8') as f:
@@ -109,14 +118,15 @@ def carregar_mapa_estado(filename):
         with open(filename, 'r', encoding='utf-8') as f:
             dados_carregados = json.load(f)
             estado_deserializado = deserializar_do_json(dados_carregados)
-
             estado_deserializado["inimigos_derrotados"] = set(estado_deserializado.get("inimigos_derrotados", []))
             estado_deserializado["baus_abertos"] = set(estado_deserializado.get("baus_abertos", []))
             estado_deserializado["obstaculos"] = set(estado_deserializado.get("obstaculos", []))
             estado_deserializado["chaves_pegas"] = set(estado_deserializado.get("chaves_pegas", []))
-            estado_deserializado["abrir_porta"] = set(estado_deserializado.get("abrir_porta", []))
-            
-            # Garantir que regeneracoes exista
+            estado_deserializado["abrir_porta"] = set(estado_deserializado.get("abrir_porta", [])) 
+            for pos_str, lista_itens in baus_armazenamento_carregados.items():
+                pos_tuple = pos_str if isinstance(pos_str, tuple) else tuple(map(int, pos_str.strip('()').split(', '))) # Garante que é uma tupla
+                baus_finais[pos_tuple] = lista_itens
+            estado_deserializado["baus_armazenamento"] = baus_finais           
             if "regeneracoes" not in estado_deserializado:
                 estado_deserializado["regeneracoes"] = {}
 
@@ -129,7 +139,6 @@ def salvar_jogo_global(player, ESTADO_MAPAS, filename="save_global.json"):
     try:
         inventario_nomes = [item.nome for item in player.inventario]
         equipa_nomes = {slot: item.nome if item else None for slot, item in player.equipa.items()}
-
         player_data = {
             "nome": player.nome,
             "hp_max": player.hp_max,
@@ -162,7 +171,6 @@ def salvar_jogo_global(player, ESTADO_MAPAS, filename="save_global.json"):
             "andar": player.andar
         }
 
-        # Serializa todos os mapas
         mapas_serializados = {}
         for mapa_id, estado in ESTADO_MAPAS.items():
             mapas_serializados[mapa_id] = serializar_para_json({
@@ -176,7 +184,8 @@ def salvar_jogo_global(player, ESTADO_MAPAS, filename="save_global.json"):
                 "chaves_pegas": estado["chaves_pegas"],
                 "abrir_porta": estado["abrir_porta"],
                 "plantacoes": estado.get("plantacoes", {}),
-                "regeneracoes": estado.get("regeneracoes", {}),  # <-- adicionado aqui também
+                "regeneracoes": estado.get("regeneracoes", {}), 
+                "baus_armazenamento": estado.get("baus_armazenamento", {}),
             })
 
         save_data = {
@@ -243,10 +252,20 @@ def carregar_jogo_global(filename="save_global.json"):
         player.rodar_jogo = player_data["rodar"]
         player.classe = player_data["classes"]
 
-        # --- MAPAS ---
         mapas_carregados = {}
         for mapa_id, estado_serializado in save_data.get("mapas", {}).items():
             estado_deserializado = deserializar_do_json(estado_serializado)
+            baus_armazenamento_carregados = estado_deserializado.get("baus_armazenamento", {})
+            baus_finais = {}
+            for pos_str, lista_itens in baus_armazenamento_carregados.items():
+                if isinstance(pos_str, str) and pos_str.startswith('(') and pos_str.endswith(')'):
+                    try:
+                        pos_tuple = tuple(map(int, pos_str.strip('()').split(', ')))
+                    except ValueError:
+                        pos_tuple = pos_str
+                else:
+                    pos_tuple = pos_str
+                baus_finais[pos_tuple] = lista_itens
 
             mapas_carregados[mapa_id] = {
                 "mapa_art": estado_deserializado["mapa_art"],
@@ -261,6 +280,7 @@ def carregar_jogo_global(filename="save_global.json"):
                 "caracteres_aleatorios": estado_deserializado.get("caracteres_aleatorios", []),
                 "chaves_pegas": set(tuple(p) for p in estado_deserializado.get("chaves_pegas", [])),
                 "abrir_porta": set(tuple(p) for p in estado_deserializado.get("abrir_porta", [])),
+                "baus_armazenamento": baus_finais,
             }
 
         print(f"✅ Save global carregado com sucesso de '{filename}'")
@@ -271,7 +291,6 @@ def carregar_jogo_global(filename="save_global.json"):
         return None, {}
 
 def adicionar_caracteres_aleatorios(mapa_id, estado_mapa, caracteres_quantidades, seed=None):
-    # Só não adiciona se já houver caracteres anteriores
     if estado_mapa.get("caracteres_aleatorios"):
         return 
 
@@ -427,7 +446,8 @@ def mini_mapa(
             "chaves_pegas": estado_carregado.get("chaves_pegas", set()),
             "abrir_porta": estado_carregado.get("abrir_porta", set()),
             "plantacoes": estado_carregado.get("plantacoes", {}),
-            "regeneracoes":estado_carregado.get("regeneracoes", {})
+            "regeneracoes":estado_carregado.get("regeneracoes", {}),
+            "baus_armazenamento": estado_carregado.get("baus_armazenamento", {}),
         }
 
         mapa_art = ESTADO_MAPAS[mapa_id]["mapa_art"]
@@ -449,6 +469,7 @@ def mini_mapa(
             "abrir_porta": set(),
             "plantacoes": {},
             "regeneracoes": {},
+            "baus_armazenamento": {}, 
         }
 
     player.x_mapa = x_p
@@ -482,14 +503,14 @@ def mini_mapa(
         camera_y = max(0, min(MAP_HEIGHT - CAMERA_HEIGHT, player.y_mapa - CAMERA_HEIGHT // 2))
 
     while True:
-        caracter_atul = mapa_art[player.y_mapa][player.x_mapa]
+        px, py = player.x_mapa, player.y_mapa
+        caractere_atual = mapa_art[py][px]
         clear()
         regeneracoes = ESTADO_MAPAS[mapa_id].get("regeneracoes", {})
         tempo_atual = time.time()
         for (px, py), dados in list(regeneracoes.items()):
             tempo_passado = tempo_atual - dados["tempo_inicio"]
             tempo_regeneracao = dados.get("tempo_regeneracao", 30)
-
             if tempo_passado >= tempo_regeneracao:
                 substituir_caractere(mapa_art, px, py, '♠')
                 del regeneracoes[(px, py)]
@@ -502,7 +523,7 @@ def mini_mapa(
             tempo_crescimento = dados.get("tempo_crescimento", 10)
             tipo = dados.get("item", "desconhecido")
 
-            if tempo_passado >= tempo_crescimento and mapa_art[py][px] in ('*', "1"):
+            if tempo_passado >= tempo_crescimento and mapa_art[py][px] in ('*', "1", ','):
                 if tipo == "trigo":
                     substituir_caractere(mapa_art, px, py, "‼")
                 elif tipo == "milho":
@@ -513,6 +534,8 @@ def mini_mapa(
                     substituir_caractere(mapa_art, px, py, '♣')
                 elif tipo == 'arbusto':
                     substituir_caractere(mapa_art, px, py, '♠')
+                elif tipo == 'terra':
+                    substituir_caractere(mapa_art, px, py, '.')
                 else:
                     substituir_caractere(mapa_art, px, py, "¶")
                 
@@ -610,6 +633,116 @@ def mini_mapa(
             with term.location(x_l + CAMERA_WIDTH + 7, y_l + CAMERA_HEIGHT):
                 input(term.bold_cyan("[Pressione Enter para continuar]"))
 
+        def bau_armazenamento(pos_bau):
+            ESTADO = ESTADO_MAPAS[mapa_id]
+            baus_armazenamento = ESTADO.setdefault("baus_armazenamento", {})
+            bau_inventario = baus_armazenamento.setdefault(pos_bau, [])
+
+            def exibir_telas_bau():
+                """Desenha as três janelas: Menu, Baú e Inventário do Jogador."""
+                clear()
+                
+                # --- Desenho do Inventário do Jogador (Esquerda) ---
+                conteudo_player = "\n".join(f"{i+1}. {item.nome}" for i, item in enumerate(player.inventario)) or "Inventário vazio."
+                draw_window(
+                    term, 
+                    x=x_l - 35, 
+                    y=y_l, 
+                    width=30, 
+                    height=15, 
+                    title=f"Inventário de {player.nome}",
+                    text_content=conteudo_player
+                )
+
+                # --- Desenho do Menu (Centro) ---
+                menu_texto = term.bold_yellow("[1]") + " Guardar\n" + \
+                             term.bold_yellow("[2]") + " Pegar\n" + \
+                             term.bold_yellow("[3]") + " Sair"
+                draw_window(
+                    term, 
+                    x=x_l, 
+                    y=y_l, 
+                    width=30, 
+                    height=15, 
+                    title=term.bold_cyan("Baú de Armazenamento"),
+                    text_content=menu_texto
+                )
+                
+                # --- Desenho do Inventário do Baú (Direita) ---
+                conteudo_bau = "\n".join(f"{i+1}. {item.nome}" for i, item in enumerate(bau_inventario)) or "Baú vazio."
+                draw_window(
+                    term, 
+                    x=x_l + 35, 
+                    y=y_l, 
+                    width=30, 
+                    height=15, 
+                    title=term.bold_green("Itens do Baú"),
+                    text_content=conteudo_bau
+                )
+
+            def processar_transferencia(origem_lista, destino_lista, titulo_escolha):
+                """Função auxiliar para gerenciar a transferência de itens (Guardar/Pegar)."""
+                if not origem_lista:
+                    falas(f"A lista de origem ({titulo_escolha}) está vazia.")
+                    return
+
+                clear()
+                
+                # Exibe a lista de itens para escolha
+                itens_enumerados = "\n".join(f"{i+1}. {item.nome}" for i, item in enumerate(origem_lista))
+                draw_window(
+                    term, 
+                    x=x_l, 
+                    y=y_l, 
+                    width=40, 
+                    height=15, 
+                    title=titulo_escolha,
+                    text_content=itens_enumerados
+                )
+
+                with term.location(x=x_l, y=y_l + 16):
+                    idx_str = input(term.bold("Digite o número do item (ou C para Cancelar): ")).strip()
+                
+                if idx_str.upper() == 'C':
+                    return
+                    
+                if idx_str.isdigit():
+                    idx = int(idx_str) - 1
+                    if 0 <= idx < len(origem_lista):
+                        item = origem_lista.pop(idx)
+                        destino_lista.append(item)
+                        falas(f"{item.nome} foi {'guardado no baú' if destino_lista is bau_inventario else 'pego do baú'}.")
+                        salvar_mapa_estado(save_filename, mapa_id, ESTADO)
+                    else:
+                        falas("Número de item inválido.")
+                else:
+                    falas("Entrada inválida. Tente novamente.")
+
+            while True:
+                exibir_telas_bau()
+                
+                with term.location(x=x_l, y=y_l + 16):
+                    escolha = input(term.bold_cyan("Escolha uma opção: ")).strip()
+
+                if escolha == "1":  # Guardar
+                    processar_transferencia(
+                        player.inventario, 
+                        bau_inventario, 
+                        "Escolha o item para guardar no Baú:"
+                    )
+
+                elif escolha == "2":  # Pegar
+                    processar_transferencia(
+                        bau_inventario, 
+                        player.inventario, 
+                        "Escolha o item para pegar do Baú:"
+                    )
+
+                elif escolha == "3":  # Sair
+                    break
+                    
+                else:
+                    falas("Opção inválida. Escolha 1, 2 ou 3.")
 
         atualizar_camera()
         janela_mapa = [
@@ -658,17 +791,12 @@ def mini_mapa(
                     abrir_portas((px, py))
                     break
             elif ch == 'M':
-                # Assumindo player.aprender_magias está definido
                 player.aprender_magias(term ,x_menu=x_l + CAMERA_WIDTH + 5, y_menu=y_l, wend=CAMERA_WIDTH + 5, herd=CAMERA_HEIGHT)
             elif ch == 'V':
-                # Assumindo player.gerenciar_loja está definido
                 player.gerenciar_loja(x=0, y=0, largura=30)
-
             if ch in ["G", "F"]:
                 if ch == "G":
-                    # Assumindo esqueleto está definido e retorna um dict status
                     status = esqueleto(player_b=player, art=ascii)
-                    # Assumindo inimigo está definido
                     inimigo_b = inimigo(
                         nome=status['nome'],
                         hp_max = status["hp"],
@@ -682,7 +810,6 @@ def mini_mapa(
                         art_ascii=status['art']
                     )
                 elif ch == "F":
-                    # Assumindo zumbi está definido e retorna um dict status
                     status = zumbi(player_b=player, art=ascii)
                     inimigo_b = inimigo(
                         nome=status['nome'],
@@ -696,7 +823,6 @@ def mini_mapa(
                         atk2= status['atk_2'],
                         art_ascii=status['art']
                     )
-                # Assumindo batalha está definido
                 batalha(player_b=player, inimigo_b=inimigo_b)
                 if inimigo_b.hp <= 0:
                     ESTADO_MAPAS[mapa_id]["inimigos_derrotados"].add((px, py))
@@ -728,7 +854,7 @@ def mini_mapa(
             adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'o': 25, 'G': 5, 'F': 5, 'B': 5, '!': 1})
             obstaculos_inimigo = ['o', 'G', 'F', 'B', f'{player.skin}', '!',"#"]
             inimigo_chars = ["F","G"]
-            if caracter_atul == '!':
+            if caractere_atual == '!':
                 player.andar += 1
                 limpar_todas_caverna()
                 mapas_aleatorio(player)
@@ -740,7 +866,7 @@ def mini_mapa(
             adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'o': 25, 'G': 5, 'F': 5, 'B': 5, '!': 1})
             obstaculos_inimigo = ['o', 'G', 'F', 'B', f'{player.skin}', '!',"#"]
             inimigo_chars = ["F","G"]
-            if caracter_atul == '!':
+            if caractere_atual == '!':
                 player.andar += 1
                 limpar_todas_caverna()
                 mapas_aleatorio(player)
@@ -812,23 +938,35 @@ def mini_mapa(
                         interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
                         tentativas = interacoes_contagem[pos]
                         item_equipado = player.equipa.get("m_pri")
-                        if item_equipado and item_equipado.nome.lower() == "machado":
-                            if tentativas == 1:
-                                feedback_message = "Você começa a cortar a árvore..."
-                            elif tentativas == 2:
-                                feedback_message = "Você continua cortando..."
-                            elif tentativas >= 3:
-                                feedback_message = "A árvore caiu!"
-                            linha_antiga = mapa_art[py]
-                            mapa_art[py] = linha_antiga[:px] + '.' + linha_antiga[px + 1:]
-                            interacoes_contagem.pop(pos, None)
-                            for _ in range(5):
-                                player.inventario.append(TODOS_OS_ITENS["Madeira"])
-                            player.inventario.append(TODOS_OS_ITENS['Muda/Arvore'])
-                            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                            break
+                        if item_equipado and item_equipado.nome.lower() == "machado" or item_equipado and item_equipado.nome.lower() ==  'picareta':
+                            if item_equipado and item_equipado.nome.lower() == "machado":
+                                if tentativas == 1:
+                                    feedback_message == 'Você quebrou uma Arvore'
+                                    linha_antiga = mapa_art[py]
+                                    mapa_art[py] = linha_antiga[:px] + '.' + linha_antiga[px + 1:]
+                                    interacoes_contagem.pop(pos, None)
+                                    for _ in range(5):
+                                        player.inventario.append(TODOS_OS_ITENS["Madeira"])
+                                    player.inventario.append(TODOS_OS_ITENS['Muda/Arvore'])
+                                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+                                    break
+                            elif item_equipado and item_equipado.nome.lower() == "picareta":
+                                if tentativas == 1:
+                                    feedback_message = 'Você começos a cortar a Arvore'
+                                elif tentativas == 2:
+                                    feedback_message = 'Você continuar cortando'
+                                elif tentativas == 3:
+                                    feedback_message = 'Você quebrou a Arvore'
+                                    linha_antiga = mapa_art[py]
+                                    mapa_art[py] = linha_antiga[:px] + '.' + linha_antiga[px + 1:]
+                                    interacoes_contagem.pop(pos, None)
+                                    for _ in range(5):
+                                        player.inventario.append(TODOS_OS_ITENS["Madeira"])
+                                    player.inventario.append(TODOS_OS_ITENS['Muda/Arvore'])
+                                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+                                    break
                         else:
-                            feedback_message = 'Você precisa de um machado'
+                            feedback_message = 'Você precisa de um machado ou uma picareta'
                     elif ch == '♠':
                         pos = (px, py)
                         interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
@@ -912,7 +1050,6 @@ def mini_mapa(
                             salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
                         else:
                             feedback_message = 'Você precisa de uma Picareta'
-
                     elif ch == '‼':
                         pos = (px, py)
                         interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
@@ -936,16 +1073,16 @@ def mini_mapa(
                 if mapas_ in (mapas.caverna.split("\n"), mapas.caverna2.split("\n")):
                     config = mapa_prai()
                     mini_mapa(
-x_l=0, y_l=0,
-player=player,
-mapas_=config["mapa"],
-camera_w=35, camera_h=15,
-x_p=37, y_p=18,
-menager="",
-cores_custom=config["cores"],
-obstaculos_custom=config["obstaculos"],
-mapa_nome=config["nome"]
-)
+                    x_l=0, y_l=0,
+                    player=player,
+                    mapas_=config["mapa"],
+                    camera_w=35, camera_h=15,
+                    x_p=37, y_p=18,
+                    menager="",
+                    cores_custom=config["cores"],
+                    obstaculos_custom=config["obstaculos"],
+                    mapa_nome=config["nome"]
+                    )
 
             elif movi == "e":
                 chao_atual = mapa_art[player.y_mapa][player.x_mapa]
@@ -955,11 +1092,29 @@ mapa_nome=config["nome"]
                         feedback_message = 'Você arou o chão'
                         substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, '=')
                         salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+                    if item_equipado and item_equipado.nome.lower() == 'pá':
+                        if caractere_atual == '.':
+                            tipo = 'terra'
+                            tempo_crescimento = 25
+                            substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, ",")
+                            ESTADO_MAPAS[mapa_id]["plantacoes"][(player.x_mapa, player.y_mapa)] = {
+                            "item": tipo,
+                            "tempo_plantio": time.time(),
+                            "tempo_crescimento": tempo_crescimento,}
+                            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+                            itens_ale = random.choice('Semente/Trigo', 'Semente/Milho', 'Semente/Abobora')
+                            player.inventario.append(TODOS_OS_ITENS[f'{itens_ale}'])
+                            feedback_message = f'Você cavou um buraco\nconseguio um {itens_ale}'
+                        elif caractere_atual == ',':
+                            feedback_message = 'Você já existe um buraco aqui'
 
             elif movi == 'x':
                 for px, py, ch in proximos:
                     if ch == '%':
                         feedback_message = 'Entrando nas Caverna'
+                    if ch == "$":
+                        bau_armazenamento((px, py))
+                        break
                     if ch == 'C':
                         player.craft(x=x_l, y=y_l, werd=CAMERA_WIDTH + 10, herd=CAMERA_HEIGHT + 2)
                     if ch == 'x':
@@ -1001,6 +1156,12 @@ mapa_nome=config["nome"]
                                         substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, "#")
                                         player.inventario.remove(item_escolhido)
                                         salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+                                    elif item_escolhido.nome == "Bau":
+                                        feedback_message = "Você colocou Bau."
+                                        substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, "$")
+                                        player.inventario.remove(item_escolhido)
+                                        salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+                                    
                                     elif item_escolhido.nome in ['Semente/Arbusto', 'Semente/Abobora', 'Semente/Milho', 'Semente/Trigo', 'Muda/Arvore']:
                                         if item_escolhido.nome == "Semente/Trigo":
                                             tipo = "trigo"

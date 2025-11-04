@@ -5,10 +5,11 @@ player_b = jogador(nome="", hp_max=100, atk=15, niv=1, xp_max=100, defesa=10, go
 mapas = mini_mapa_()
 def mapa_prai():
     mapa = mapas.praia.split("\n")
-    obstaculos = {'#','~','♣','&',"C", '‼','¥', 'o', '0', '1','„','♠', 'x'} 
+    obstaculos = {'#','~','♣','&',"C", '‼','¥', 'o', '0', '1','„','♠', 'x', '$'} 
     cores = {'#':term.brown, '♣':term.green, '~':term.lightblue_on_darkblue, 'C':term.brown, '.':term.yellow,
 '*': term.lightgreen, '-':term.bold_yellow,'‼':term.bold_yellow,'¥':term.darkgreen, 'o': term.bold_ligtgray,
-'0':term.orange, '1':term.green,'„': term.bold_ligtgreen,'♠': term.darkgreen, 'x':term.bold_brown}
+'0':term.orange, '1':term.green,'„': term.bold_ligtgreen,'♠': term.darkgreen, 'x':term.bold_brown, ',': term.on_brown,
+'$': term.yellow}
 
     return {
         "nome": "Praia",

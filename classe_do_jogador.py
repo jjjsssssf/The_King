@@ -25,6 +25,7 @@ class jogador:
         self.buff_atk = 0
         self.buff_def = 0
         self.ponto = 0
+        self.limite_inventario_base = 10 
         self.xp_max = xp_max
         self.dano_magico = d_m
         self.xp = 0
@@ -66,6 +67,8 @@ class jogador:
             "Dentro_Farol": False,
         }
         self.classe = None 
+
+
 
     def barra_de_vida(self, x_l, y_l, largura=25):
         proporcao_hp = max(0, min(self.hp / self.hp_max, 1))
@@ -358,92 +361,110 @@ DEF: [{magia.bonus_def}]"""
         draw_window(term, x_janela, y_janela, width=35, height=herd, text_content=text_content)
         time.sleep(2)
         return sucesso
-    
+
     def inventario_(self, x, y, werd, herd, batalha):
         altura_janela = 0
         sucesso_uso = False
+        pagina = 0
+        itens_por_pagina = 8
+
         while True:
             text_content = ""
             contagem_itens = defaultdict(int)
             lista_itens = []
             indice_para_item = {}
-
             if not self.inventario:
                 text_content = "Não tem nada no inventário.\n"
             else:
+                # Conta todos os itens
                 for item_obj in self.inventario:
                     contagem_itens[item_obj.nome] += 1
+
+                todos_itens = list(contagem_itens.items())
+                total_paginas = (len(todos_itens) - 1) // itens_por_pagina + 1
+                inicio = pagina * itens_por_pagina
+                fim = inicio + itens_por_pagina
+                itens_visiveis = todos_itens[inicio:fim]
                 index = 1
-                for item_nome, quantidade in contagem_itens.items():
+                for item_nome, quantidade in itens_visiveis:
                     item_obj_ref = TODOS_OS_ITENS[item_nome]
-                    
                     estado = ""
                     if (item_obj_ref.slot_equip and
                         self.equipa.get(item_obj_ref.slot_equip) and
                         self.equipa[item_obj_ref.slot_equip].nome == item_obj_ref.nome):
                         estado = "[Equipado]"
-                    
+
                     text_content += f"[{index}] {item_obj_ref.nome} (x{quantidade}) {estado}\n"
-                    
                     lista_itens.append(item_obj_ref)
                     indice_para_item[index - 1] = item_obj_ref
                     index += 1
-            text_content += "Escolha um número para usar o item\nDigite 'sair' para sair"
+                text_content += f"\nPágina {pagina + 1}/{total_paginas}\n"
+                text_content += "Escolha um número,\n'<', '>', ou 'sair'"
             num_linhas_texto = text_content.count('\n') + 1
             altura_janela = num_linhas_texto + 4 
             clear_region_a(x=x, start_y=y, end_y=y, width=werd)
             draw_window(term, x, y, width=werd, height=altura_janela, title="Inventário", text_content=text_content)
-            x_input = x +1
-            y_input = y + altura_janela - 3
+            x_input = x + 1
+            y_input = y + altura_janela - 2
             with term.location(x_input, y_input):
                 print(" " * (werd - 4), end='\r')
             with term.location(x_input, y_input):
-                escolha = input(">")
-
-            if escolha.lower() == "sair":
+                escolha = input("> ").strip().lower()
+            if escolha == "sair":
                 return sucesso_uso
+            if escolha == ">":
+                if pagina < total_paginas - 1:
+                    pagina += 1
+                else:
+                    mensagem = "Você já está na última página."
+                    draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
+                    time.sleep(1.2)
+                continue
 
+            if escolha == "<":
+                if pagina > 0:
+                    pagina -= 1
+                else:
+                    mensagem = "Você já está na primeira página."
+                    draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
+                    time.sleep(1.2)
+                continue
             if escolha.isdigit():
                 escolha_index = int(escolha) - 1
                 if 0 <= escolha_index < len(lista_itens):
-                    item_escolhido = lista_itens[escolha_index] 
-                    
+                    item_escolhido = lista_itens[escolha_index]
                     if batalha:
                         if item_escolhido.tipo == "Consumivel":
                             sucesso_uso_local = self.usar_consumivel(item_escolhido, x, y + altura_janela + 1, werd)
                             if sucesso_uso_local:
                                 sucesso_uso = True
                                 return True 
-                            
                         elif item_escolhido.tipo == "Equipavel":
                             mensagem = "Você não pode usar\num equipamento em batalha!"
                             draw_window(term, x=x, y=y + altura_janela, width=werd, height=4, text_content=mensagem)
                             time.sleep(3)
                             clear_region_a(x=x, start_y=y, end_y=y, width=werd)
-                    
-                    else: 
+                    else:
                         if item_escolhido.tipo == "Consumivel":
                             sucesso_uso = self.usar_consumivel(item_escolhido, x, y + altura_janela, werd) or sucesso_uso
                         elif item_escolhido.tipo == "Equipavel":
                             alteracao_equip = self.gerenciar_equipavel(item_escolhido, x, y + altura_janela, werd)
                             if alteracao_equip:
                                 sucesso_uso = True
+                        elif item_escolhido.tipo == "Produto":
+                            interacoes_produto = self.usar_produtos(item_escolhido, x, y + altura_janela, werd) or sucesso_uso
                         elif item_escolhido.tipo == "Material":
                             alteracao_material = self.gerenciar_material(item_escolhido, x, y + altura_janela, werd)
                             if alteracao_material:
                                 sucesso_uso = True
-
-                            
                 else:
-                    mensagem = "Número inválido."
-                    draw_window(term, x=x, y=y + altura_janela, width=werd, height=3, text_content=mensagem)
+                    mensagem = "Número inválido nesta página."
+                    draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
                     time.sleep(2)
-                    clear_region_a(x=x, start_y=y, end_y=y, width=werd)
             else:
                 mensagem = "Entrada inválida."
-                draw_window(term, x=x, y=y + altura_janela, width=werd, height=3, text_content=mensagem)
+                draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
                 time.sleep(2)
-                clear_region_a(x=x, start_y=y, end_y=y, width=werd)
 
     def gerenciar_material(self, item, x_janela, y_janela, werd):
         altura_opcoes = 6
@@ -501,6 +522,19 @@ DEF: [{magia.bonus_def}]"""
         
         return alteracao_efetuada
 
+    def usar_produtos(self, item, x_janela, y_janela, werd):
+        altura_mensagem = 3
+        clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd)
+        if item.tipo != "Produto":
+            mensagem = "Esse item não pode ser usado!"
+        else:
+            mensagem = f"{item.nome}: esse item é um Produto."
+        draw_window(term, x_janela, y_janela, width=werd, height=altura_mensagem, text_content=mensagem)
+        time.sleep(2)
+        clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd)
+        sucesso = True
+        return sucesso
+
     def usar_consumivel(self, item, x_janela, y_janela, werd):
         """Usa um item consumível genérico, aplicando todos os bônus definidos nele."""
         altura_mensagem = 3
@@ -553,7 +587,6 @@ DEF: [{magia.bonus_def}]"""
         time.sleep(2)
         clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd)
         return sucesso
-
 
     def gerenciar_equipavel(self, item, x_janela, y_janela, werd):
         """Retorna True se o equipamento foi equipado/desequipado, False caso contrário."""
@@ -770,9 +803,7 @@ DEF: [{magia.bonus_def}]"""
             inicio = pagina * receitas_por_pagina
             fim = inicio + receitas_por_pagina
             receitas_visiveis = receitas_lista[inicio:fim]
-
-            # Montar conteúdo
-            linhas = ["== Oficina de Craft =="]
+            linhas = [""]
             for i, (nome_item, materiais) in enumerate(receitas_visiveis, start=1):
                 requisitos = ", ".join(f"{mat} x{qtd}" for mat, qtd in materiais.items())
                 linhas.append(f"[{i}] {nome_item}")
@@ -781,22 +812,15 @@ DEF: [{magia.bonus_def}]"""
             linhas.append(f"\nPágina {pagina + 1}/{total_paginas}")
             linhas.append("Digite o número da receita,\n'<' ou '>', ou 'sair'.")
             text_content = "\n".join(linhas)
-
-            # --- 🧠 Cálculo automático da altura ---
             linhas_contadas = len(linhas)
             herd_auto = max(10, min(linhas_contadas + 4, 25))
-            # mínimo de 10 linhas, máximo de 25 (pode ajustar)
             altura_janela = herd_auto if herd is None else herd_auto
 
-            draw_window(term, x=x, y=y, width=werd, height=altura_janela, title="Crafting", text_content=text_content)
-            with term.location(x + 2, y + altura_janela - 2):
+            draw_window(term, x=x, y=y, width=werd, height=altura_janela+1, title="Crafting", text_content=text_content)
+            with term.location(x + 2, y + altura_janela - 1):
                 escolha = input("> ").strip().lower()
-
-            # Sair do menu
             if escolha == "sair":
                 return
-
-            # Navegação entre páginas
             if escolha == ">":
                 if pagina < total_paginas - 1:
                     pagina += 1

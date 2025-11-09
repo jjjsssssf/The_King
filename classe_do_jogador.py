@@ -1,6 +1,6 @@
 import random, os, time, json
 from classe_arts import draw_window,clear, art_ascii, clear_region_a
-from classe_do_inventario import Item, TODOS_OS_ITENS, magias, TODAS_AS_MAGIAS, RECEITAS
+from classe_do_inventario import *
 from collections import defaultdict
 from blessed import Terminal
 term = Terminal()
@@ -13,13 +13,13 @@ class jogador:
         self.skin_nome = skin_nome
         self.hp_max = hp_max
         self.hp = self.hp_max
-        self.mapa_atual = "castelo_1"
+        self.mapa_atual = ""
         self.mana_max = mn_max
         self.mana = self.mana_max
         self.stm_max = stm_max
         self.stm = self.stm_max
         self.atk = atk
-        self.andar = 1
+        self.andar = 0
         self.intt = intt
         self.niv = niv
         self.buff_atk = 0
@@ -36,6 +36,7 @@ class jogador:
         self.art_player = art_player
         self.x_mapa = 0
         self.y_mapa = 0
+        self.seed = 0
         self.boss = {'Suny': False}
         self.dificuldade = {
             "Facil": {"dif": None, "niv": 0.5},
@@ -48,6 +49,7 @@ class jogador:
         self.equipa = {
             "m_pri": None,
             "m_seg": None,
+            "m_ter": None,
             "c_cap": None,
             "p_pet": None,
         }
@@ -67,8 +69,6 @@ class jogador:
             "Dentro_Farol": False,
         }
         self.classe = None 
-
-
 
     def barra_de_vida(self, x_l, y_l, largura=25):
         proporcao_hp = max(0, min(self.hp / self.hp_max, 1))
@@ -113,7 +113,7 @@ class jogador:
         with term.location(x=x_l, y=y_l+6):
             print(f"X: [{term.bold_blue(str(self.x_mapa))}] - Y: [{term.bold_red(str(self.y_mapa))}]")
         with term.location(x=x_l, y=y_l+7):
-            print(f"Dificudade: [{self.dificuldade_atual}]")
+            print(f"Dificudade: [{self.dificuldade_atual}] Seed: [{self.seed}]")
         y_mat = y_l + 8
         with term.location(x=x_l, y=y_mat):
             print(term.bold_white("Materiais Equipados:"))
@@ -793,7 +793,11 @@ DEF: [{magia.bonus_def}]"""
         draw_window(term, x_janela, y_janela, width=len(mensagem)-5, height=herd, text_content=mensagem)
 
     def craft(self, x, y, werd, herd=None):
-        receitas_lista = list(RECEITAS.items())
+        receitas = escolher_tipo_receita(0, 0, 35, 8)
+        if receitas is None:
+            return None
+
+        receitas_lista = list(receitas.items())
         receitas_por_pagina = 5
         pagina = 0
         total_paginas = (len(receitas_lista) - 1) // receitas_por_pagina + 1
@@ -803,89 +807,131 @@ DEF: [{magia.bonus_def}]"""
             inicio = pagina * receitas_por_pagina
             fim = inicio + receitas_por_pagina
             receitas_visiveis = receitas_lista[inicio:fim]
+
+            # Montar menu
             linhas = [""]
-            for i, (nome_item, materiais) in enumerate(receitas_visiveis, start=1):
-                requisitos = ", ".join(f"{mat} x{qtd}" for mat, qtd in materiais.items())
+            for i, (nome_item, receita) in enumerate(receitas_visiveis, start=1):
+                requisitos = ", ".join(
+                    f"{mat} x{qtd}" for mat, qtd in receita.materiais.items() if mat != "Quantidade"
+                )
                 linhas.append(f"[{i}] {nome_item}")
                 linhas.append(f"   {requisitos}")
 
             linhas.append(f"\nPágina {pagina + 1}/{total_paginas}")
-            linhas.append("Digite o número da receita,\n'<' ou '>', ou 'sair'.")
+            linhas.append("Digite: '<' ou '>' para navegar páginas")
+            linhas.append("Digite 'sair' para voltar")
+            linhas.append("OU digite: número [quantidade] (ex: 2 4)")
+
             text_content = "\n".join(linhas)
             linhas_contadas = len(linhas)
             herd_auto = max(10, min(linhas_contadas + 4, 25))
             altura_janela = herd_auto if herd is None else herd_auto
 
-            draw_window(term, x=x, y=y, width=werd, height=altura_janela+1, title="Crafting", text_content=text_content)
+            draw_window(term, x=x, y=y, width=werd, height=altura_janela + 1,
+                        title="Crafting", text_content=text_content)
+
             with term.location(x + 2, y + altura_janela - 1):
-                escolha = input("> ").strip().lower()
-            if escolha == "sair":
-                return
-            if escolha == ">":
+                entrada = input("> ").strip().lower()
+
+            if entrada == "sair":
+                return None
+
+            if entrada == ">":
                 if pagina < total_paginas - 1:
                     pagina += 1
                 else:
-                    mensagem = "Você já está na última página."
-                    draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
+                    draw_window(term, x, y + altura_janela, width=werd, height=3,
+                                text_content="Você já está na última página.")
                     time.sleep(1.2)
                 continue
 
-            if escolha == "<":
+            if entrada == "<":
                 if pagina > 0:
                     pagina -= 1
                 else:
-                    mensagem = "Você já está na primeira página."
-                    draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
+                    draw_window(term, x, y + altura_janela, width=werd, height=3,
+                                text_content="Você já está na primeira página.")
                     time.sleep(1.2)
                 continue
 
-            # Escolher receita
-            if not escolha.isdigit():
-                mensagem = "Entrada inválida."
-                draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
+            partes = entrada.split()
+            if not partes or not partes[0].isdigit():
+                draw_window(term, x, y + altura_janela, width=werd, height=3,
+                            text_content="Entrada inválida.")
                 time.sleep(1.2)
                 continue
 
-            indice_local = int(escolha) - 1
+            indice_local = int(partes[0]) - 1
+            qtd_fazer = int(partes[1]) if len(partes) > 1 and partes[1].isdigit() else 1
+
             if indice_local < 0 or indice_local >= len(receitas_visiveis):
-                mensagem = "Número inválido nesta página."
-                draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
+                draw_window(term, x, y + altura_janela, width=werd, height=3,
+                            text_content="Número inválido nesta página.")
                 time.sleep(1.2)
                 continue
 
-            # Identificar a receita correta
-            nome_item, materiais = receitas_visiveis[indice_local]
+            nome_item, receita = receitas_visiveis[indice_local]
+            materiais = receita.materiais
+            quantidade_por_receita = getattr(receita, "quantidade", 1)
+            total_produzir = qtd_fazer * quantidade_por_receita
+
             faltando = []
             for mat, qtd in materiais.items():
+                if mat == "Quantidade":
+                    continue
                 count = sum(1 for i in self.inventario if i.nome == mat)
-                if count < qtd:
-                    faltando.append(f"{mat} ({count}/{qtd})")
+                if count < qtd * qtd_fazer:
+                    faltando.append(f"{mat} ({count}/{qtd * qtd_fazer})")
 
             if faltando:
-                mensagem = "Você não possui os materiais necessários:\n" + "\n".join(faltando)
-                draw_window(term, x, y + altura_janela, width=werd, height=len(faltando) + 5, text_content=mensagem)
+                mensagem = "Materiais insuficientes:\n" + "\n".join(faltando)
+                draw_window(term, x, y + altura_janela, width=werd,
+                            height=len(faltando) + 5, text_content=mensagem)
                 time.sleep(2)
                 continue
 
-            # Remove os materiais
             for mat, qtd in materiais.items():
+                if mat == "Quantidade":
+                    continue
                 removidos = 0
                 for item in list(self.inventario):
                     if item.nome == mat:
                         self.inventario.remove(item)
                         removidos += 1
-                        if removidos >= qtd:
+                        if removidos >= qtd * qtd_fazer:
                             break
 
-            # Adiciona o novo item
             if nome_item in TODOS_OS_ITENS:
                 novo_item = TODOS_OS_ITENS[nome_item]
-                self.inventario.append(novo_item)
-                mensagem = f"Você fabricou {nome_item}!"
+                for _ in range(total_produzir):
+                    self.inventario.append(novo_item)
+                mensagem = f"Você fabricou {total_produzir}x {nome_item}!"
             else:
                 mensagem = f"Item '{nome_item}' não encontrado em TODOS_OS_ITENS."
+                novo_item = None
 
-            draw_window(term, x, y + altura_janela, width=werd, height=4, text_content=mensagem)
+            draw_window(term, x, y + altura_janela, width=werd, height=4,
+                        text_content=mensagem)
             time.sleep(2)
+            continue
+
+def escolher_tipo_receita(x, y, largura, altura):
+    while True:
+        clear()
+        menu = '''Escolha o Tipo de item que você quer fazer\n[1] Equipamentos\n[2] Materiais\n[3] Consumiveis'''
+        draw_window(term, x=x, y=y, width = largura, height = altura, text_content=menu)
+        with term.location(x=x+1, y=y+5):
+            escolha = input("> ").strip()
+        if escolha == "1":
+            return RECEITAS_EQUIPAMENTOS
+        elif escolha == "2":
+            return RECEITAS_MATERIAIS
+        elif escolha == "3":
+            return RECEITAS_CONSUMIVEIS
+        elif escolha.lower() == "sair":
+            return None
+        else:
+            with term.location(x=x+1, y=y+5):
+                print("Escolha inválida, tente novamente.")
 
 

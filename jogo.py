@@ -1,12 +1,13 @@
 from classe_do_jogador import jogador
 from classe_do_inimigo import inimigo
+from quebrar import *
 from collections import deque
 import time, random, os, json, textwrap
 from collections import Counter
 from maps import *
 from inimigo_batalha import *
 from batalha import *
-from classe_arts import draw_window,term, clear, art_ascii, Cores, mini_mapa_, dialogos, clear_region_a
+from classe_arts import *
 from mm import tocar_musica, escolher_e_tocar_musica, parar_musica, tocando_musica
 from classe_do_inventario import *
 ##ARQUIVO DO MAPA
@@ -16,27 +17,7 @@ ascii = art_ascii()
 C = Cores()
 player = jogador(nome="Joojs", hp_max=30, atk=5000, niv=15, xp_max=100, defesa=0, gold=0, stm_max=100, intt=0, mn_max=100,d_m=15,art_player=ascii.necro, skin="@", skin_nome='')
 import glob
-
-def limpar_todos_os_saves():
-    for save_file in glob.glob("save_mapa_*.json"):
-        try:
-            os.remove(save_file)
-        except Exception as e:
-            print(f"Erro ao remover {save_file}: {e}")
-
-def limpar_todas_caverna():
-    for save_file in glob.glob("save_mapa_Caverna*.json"):
-        try:
-            os.remove(save_file)
-        except Exception as e:
-            print(f"Erro ao remover {save_file}: {e}")
-
-def limpar_todos_os_saves_p():
-    for save_file in glob.glob("demo.json"):
-        try:
-            os.remove(save_file)
-        except Exception as e:
-            print(f"Erro ao remover {save_file}: {e}")
+import json, os, glob
 
 def serializar_para_json(data):
     if isinstance(data, dict):
@@ -52,6 +33,7 @@ def serializar_para_json(data):
         
     elif isinstance(data, set):
         return list(data)
+
     elif hasattr(data, '__class__') and data.__class__.__name__ == 'Item':
         return {
             "__class__": "Item", 
@@ -69,6 +51,7 @@ def deserializar_do_json(data):
         else:
             print(f"⚠️ Aviso: Item '{item_nome}' não encontrado em TODOS_OS_ITENS durante o load.")
             return None
+
     if isinstance(data, dict):
         novo_dicionario = {}
         for k, v in data.items():
@@ -86,6 +69,104 @@ def deserializar_do_json(data):
     else:
         return data
 
+def salvar_jogo_player(player, filename="save_player.json"):
+    try:
+        # Serializa o inventário e equipamento apenas pelos nomes
+        inventario_nomes = [item.nome for item in player.inventario]
+        equipa_nomes = {slot: item.nome if item else None for slot, item in player.equipa.items()}
+
+        player_data = {
+            "nome": player.nome,
+            "hp_max": player.hp_max,
+            "hp": player.hp,
+            "atk": player.atk,
+            "niv": player.niv,
+            "xp_max": player.xp_max,
+            "defesa": player.defesa,
+            "gold": player.gold,
+            "stm_max": player.stm_max,
+            "stm": player.stm,
+            "intt": player.intt,
+            "mana_max": player.mana_max,
+            "mana": player.mana,
+            "d_m": player.dano_magico,
+            "xp": player.xp,
+            "aleatorio": player.aleatorio,
+            "inventario": inventario_nomes,
+            "equipa": equipa_nomes,
+            "itens_coletados": player.itens_coletaodos,
+            "rodar": player.rodar_jogo,
+            "classe": player.classe,
+            "pos_x": player.x_mapa,
+            "pos_y": player.y_mapa,
+            "mapa_atual": player.mapa_atual,
+            "skin": player.skin,
+            "skin_nome": player.skin_nome,
+            "pontos": player.ponto,
+            "andar": player.andar,
+            "seed": player.seed
+        }
+
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(player_data, f, indent=4)
+    except Exception as e:
+        pass
+
+def carregar_jogo_player(filename="save_player.json"):
+    if not os.path.exists(filename):
+        return None
+    try:
+        with open(filename, 'r', encoding='utf-8') as f:
+            player_data = json.load(f)
+
+        # Reconstrói o jogador
+        SKIN_MAP = {
+            "necro": ascii.necro,
+            "guerreiro": ascii.guerriro,
+            "mago": ascii.mago
+        }
+        skin_nome_carregado = player_data.get("skin_nome")
+        skin_arte_carregada = SKIN_MAP.get(skin_nome_carregado) or None
+
+        player = jogador(
+            nome=player_data["nome"],
+            hp_max=player_data["hp_max"],
+            atk=player_data["atk"],
+            niv=player_data["niv"],
+            xp_max=player_data["xp_max"],
+            defesa=player_data["defesa"],
+            gold=player_data["gold"],
+            stm_max=player_data["stm_max"],
+            intt=player_data["intt"],
+            mn_max=player_data["mana_max"],
+            d_m=player_data["d_m"],
+            art_player=skin_arte_carregada,
+            skin=player_data.get("skin", "@"),
+            skin_nome=skin_nome_carregado,
+        )
+
+        # Restaura atributos
+        player.hp = player_data["hp"]
+        player.mana = player_data["mana"]
+        player.xp = player_data["xp"]
+        player.stm = player_data["stm"]
+        player.ponto = player_data["pontos"]
+        player.andar = player_data["andar"]
+        player.x_mapa = player_data["pos_x"]
+        player.y_mapa = player_data["pos_y"]
+        player.seed = player_data["seed"]
+        player.mapa_atual = player_data["mapa_atual"]
+        player.inventario = [TODOS_OS_ITENS[n] for n in player_data.get("inventario", []) if n in TODOS_OS_ITENS]
+        player.equipa = {slot: TODOS_OS_ITENS[n] if n and n in TODOS_OS_ITENS else None
+                         for slot, n in player_data.get("equipa", {}).items()}
+        player.itens_coletaodos = player_data.get("itens_coletados", {})
+        player.rodar_jogo = player_data.get("rodar")
+        player.classe = player_data.get("classe")
+        return player
+
+    except Exception as e:
+        return None
+
 def salvar_mapa_estado(filename, mapa_id, estado_mapa):
     try:
         dados_salvar = {
@@ -100,41 +181,97 @@ def salvar_mapa_estado(filename, mapa_id, estado_mapa):
             # Campos com chaves de TUPLA
             "cores": estado_mapa.get("cores", {}),
             "plantacoes": estado_mapa.get("plantacoes", {}),
-            "regeneracoes": estado_mapa.get("regeneracoes", {}),  # <-- adicionado corretamente
+            "regeneracoes": estado_mapa.get("regeneracoes", {}),
             "interacoes": estado_mapa.get("interacoes", {}),
             "caracteres_aleatorios": estado_mapa.get("caracteres_aleatorios", []),
             "baus_armazenamento": estado_mapa.get("baus_armazenamento", {}),
+            "tempo_inicio": estado_mapa.get("tempo_inicio"),
+            "tempo_decorrido": estado_mapa.get("tempo_decorrido", 0)
         }
 
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(serializar_para_json(dados_salvar), f, indent=4)
 
     except IOError as e:
-        print(f"Erro ao salvar mapa em {filename}: {e}")
+        print(f"❌ Erro ao salvar mapa em {filename}: {e}")
+    except Exception as e:
+        print(f"⚠️ Erro inesperado ao salvar mapa {mapa_id}: {e}")
 
 def carregar_mapa_estado(filename):
     if not os.path.exists(filename):
+        print(f"Nenhum save encontrado para {filename}. Será criado um novo mapa.")
         return None
+
     try:
         with open(filename, 'r', encoding='utf-8') as f:
             dados_carregados = json.load(f)
             estado_deserializado = deserializar_do_json(dados_carregados)
+            # Conversões de volta para SETs
             estado_deserializado["inimigos_derrotados"] = set(estado_deserializado.get("inimigos_derrotados", []))
             estado_deserializado["baus_abertos"] = set(estado_deserializado.get("baus_abertos", []))
             estado_deserializado["obstaculos"] = set(estado_deserializado.get("obstaculos", []))
             estado_deserializado["chaves_pegas"] = set(estado_deserializado.get("chaves_pegas", []))
             estado_deserializado["abrir_porta"] = set(estado_deserializado.get("abrir_porta", [])) 
+            # Corrige baús com chaves de string em vez de tupla
+            baus_finais = {}
+            baus_armazenamento_carregados = estado_deserializado.get("baus_armazenamento", {})
             for pos_str, lista_itens in baus_armazenamento_carregados.items():
-                pos_tuple = pos_str if isinstance(pos_str, tuple) else tuple(map(int, pos_str.strip('()').split(', '))) # Garante que é uma tupla
+                if isinstance(pos_str, tuple):
+                    pos_tuple = pos_str
+                else:
+                    try:
+                        pos_tuple = tuple(map(int, pos_str.strip("()").split(",")))
+                    except Exception:
+                        pos_tuple = pos_str  # fallback se não for uma tupla válida
                 baus_finais[pos_tuple] = lista_itens
-            estado_deserializado["baus_armazenamento"] = baus_finais           
+
+            estado_deserializado["baus_armazenamento"] = baus_finais
+
+            # Garante que todos os campos esperados existam
             if "regeneracoes" not in estado_deserializado:
                 estado_deserializado["regeneracoes"] = {}
+            if "plantacoes" not in estado_deserializado:
+                estado_deserializado["plantacoes"] = {}
+            if "cores" not in estado_deserializado:
+                estado_deserializado["cores"] = {}
+            estado_deserializado.setdefault("tempo_inicio", None)
+            estado_deserializado.setdefault("tempo_decorrido", 0)
 
+            print(f"✅ Estado do mapa '{filename}' carregado com sucesso.")
             return estado_deserializado
-    except Exception as e:
-        print(f"Erro ao carregar estado do mapa {filename}: {e}")
+
+    except json.JSONDecodeError as e:
+        print(f"Erro ao decodificar JSON do arquivo {filename}: {e}")
         return None
+    except Exception as e:
+        print(f"Erro inesperado ao carregar estado do mapa {filename}: {e}")
+        return None
+
+def limpar_todos_os_saves():
+    """Remove todos os arquivos de save de qualquer mapa."""
+    for save_file in glob.glob("save_mapa_Mundo.json"):
+        try:
+            os.remove(save_file)
+            print(f"Save removido: {save_file}")
+        except Exception as e:
+            print(f"Erro ao remover {save_file}: {e}")
+
+def limpar_todos_os_player():
+    """Remove todos os arquivos de save de qualquer mapa."""
+    for save_file in glob.glob("save_player.json"):
+        try:
+            os.remove(save_file)
+            print(f"Save removido: {save_file}")
+        except Exception as e:
+            print(f"Erro ao remover {save_file}: {e}")
+
+def limpar_todas_caverna():
+    for save_file in glob.glob("save_mapa_Caverna - *.json"):
+        try:
+            os.remove(save_file)
+            print(f"Save de caverna removido: {save_file}")
+        except Exception as e:
+            print(f"Erro ao remover {save_file}: {e}")
 
 def salvar_jogo_global(player, ESTADO_MAPAS, filename="save_global.json"):
     try:
@@ -169,7 +306,8 @@ def salvar_jogo_global(player, ESTADO_MAPAS, filename="save_global.json"):
             "char_skin": player.skin,
             "art_player_nome": player.skin_nome,
             "pontos": player.ponto,
-            "andar": player.andar
+            "andar": player.andar,
+            'seed': player.seed
         }
 
         mapas_serializados = {}
@@ -187,6 +325,8 @@ def salvar_jogo_global(player, ESTADO_MAPAS, filename="save_global.json"):
                 "plantacoes": estado.get("plantacoes", {}),
                 "regeneracoes": estado.get("regeneracoes", {}), 
                 "baus_armazenamento": estado.get("baus_armazenamento", {}),
+                "tempo_inicio": estado.get("tempo_inicio"),
+                "tempo_decorrido": estado.get("tempo_decorrido", 0),
             })
 
         save_data = {
@@ -244,6 +384,7 @@ def carregar_jogo_global(filename="save_global.json"):
         player.ponto = player_data["pontos"]
         player.andar = player_data["andar"]
         player.x_mapa = player_data["pos_x"]
+        player.seed = player_data['seed']
         player.y_mapa = player_data["pos_y"]
         player.mapa_atual = player_data["mapa_atual"]
         player.inventario = [TODOS_OS_ITENS[n] for n in player_data.get("inventario", []) if n in TODOS_OS_ITENS]
@@ -282,6 +423,8 @@ def carregar_jogo_global(filename="save_global.json"):
                 "chaves_pegas": set(tuple(p) for p in estado_deserializado.get("chaves_pegas", [])),
                 "abrir_porta": set(tuple(p) for p in estado_deserializado.get("abrir_porta", [])),
                 "baus_armazenamento": baus_finais,
+                "tempo_inicio": estado_deserializado.get("tempo_inicio"),
+                "tempo_decorrido": estado_deserializado.get("tempo_decorrido", 0),
             }
 
         print(f"✅ Save global carregado com sucesso de '{filename}'")
@@ -328,34 +471,27 @@ def adicionar_caracteres_aleatorios(mapa_id, estado_mapa, caracteres_quantidades
     estado_mapa["caracteres_aleatorios"] = caracteres_colocados
     estado_mapa["mapa_art"] = mapa_art  # Atualiza o mapa com os novos caracteres
 
-    # Garante persistência
     salvar_mapa_estado(f"save_mapa_{mapa_id}.json", mapa_id, estado_mapa)
 
-from collections import deque
+def contar_caracteres_no_mapa(mapa_art, caracteres=None):
+    if caracteres is None:
+        return False
+    
+    contador = {ch: 0 for ch in caracteres.keys()}
 
-def mapas_aleatorio(player):
-    escolha = random.choice(["caverna1", "caverna2"])
-    if escolha == "caverna1":
-        novo_mapa = mapa_caverna(player)
-        x_p = 4
-        y_p = 3
-    else:
-        novo_mapa = mapa_caverna2(player)
-        x_p = 14
-        y_p = 18
-    mini_mapa(
-        x_l=0, y_l=0,
-        player=player,
-        mapas_=novo_mapa["mapa"],
-        camera_w=35,
-        camera_h=15,
-        x_p=x_p,
-        y_p=y_p,
-        menager="",
-        cores_custom=novo_mapa["cores"],
-        obstaculos_custom=novo_mapa["obstaculos"],
-        mapa_nome=novo_mapa["nome"]
-    )
+    for linha in mapa_art:
+        for ch in linha:
+            if ch in contador:
+                contador[ch] += 1
+
+    # Verifica se algum caractere atingiu ou ultrapassou o limite
+    for ch, limite in caracteres.items():
+        if contador[ch] >= limite:
+            return True
+    
+    return False
+
+from collections import deque
 
 def substituir_caractere(mapa_art, x, y, novo_char):
     if not (0 <= y < len(mapa_art)):
@@ -418,12 +554,52 @@ def mover_inimigos_para_jogador(mapa_art, player, obstaculos, inimigo_chars, est
                 fundo_inimigos[(proximo_x, proximo_y)] = mapa_art[proximo_y][proximo_x]
                 mapa_art[proximo_y] = mapa_art[proximo_y][:proximo_x] + inimigo_tipo + mapa_art[proximo_y][proximo_x + 1:]
 
+def mover_aleatorio(mapa_art, obstaculos, mobs_chars, estado_mapa):
+    altura = len(mapa_art)
+    largura = len(mapa_art[0])
+
+    if "fundo_inimigos" not in estado_mapa:
+        estado_mapa["fundo_inimigos"] = {}
+    fundo_inimigos = estado_mapa["fundo_inimigos"]
+    inimigos = []
+
+    for y, linha in enumerate(mapa_art):
+        for x, ch in enumerate(linha):
+            if ch in mobs_chars:
+                inimigos.append((x, y, ch))
+
+    for inimigo_x, inimigo_y, inimigo_tipo in inimigos:
+        possiveis_movimentos = []
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx, ny = inimigo_x + dx, inimigo_y + dy
+            if 0 <= nx < largura and 0 <= ny < altura:
+                ch = mapa_art[ny][nx]
+                if ch not in obstaculos and ch not in mobs_chars:
+                    possiveis_movimentos.append((nx, ny))
+
+        if possiveis_movimentos:
+            proximo_x, proximo_y = random.choice(possiveis_movimentos)
+
+            fundo_char = fundo_inimigos.get((inimigo_x, inimigo_y), '.')
+            mapa_art[inimigo_y] = mapa_art[inimigo_y][:inimigo_x] + fundo_char + mapa_art[inimigo_y][inimigo_x + 1:]
+            fundo_inimigos[(proximo_x, proximo_y)] = mapa_art[proximo_y][proximo_x]
+            mapa_art[proximo_y] = mapa_art[proximo_y][:proximo_x] + inimigo_tipo + mapa_art[proximo_y][proximo_x + 1:]
+
+def remover_caracteres(mapa_art, caracteres_para_remover):
+    for y in range(len(mapa_art)):
+        linha = mapa_art[y]
+        nova_linha = ""
+        for ch in linha:
+            if ch in caracteres_para_remover:
+                nova_linha += "."
+            else:
+                nova_linha += ch
+        mapa_art[y] = nova_linha
+
 def mini_mapa(
     x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,
     cores_custom=None, obstaculos_custom=None, mapa_anterior=None, interacoes_custom=None, 
-    mapa_nome=None, ESTADO_GLOBAL_LOAD=None 
-):
-
+    mapa_nome=None, ESTADO_GLOBAL_LOAD=None ):
     ESTADO_MAPAS = ESTADO_GLOBAL_LOAD if ESTADO_GLOBAL_LOAD is not None else {}
     mapa_id = mapa_nome or id(mapas_)
     if mapa_nome:
@@ -449,6 +625,8 @@ def mini_mapa(
             "plantacoes": estado_carregado.get("plantacoes", {}),
             "regeneracoes":estado_carregado.get("regeneracoes", {}),
             "baus_armazenamento": estado_carregado.get("baus_armazenamento", {}),
+            "tempo_inicio": estado_carregado.get("tempo_inicio"),
+            "tempo_decorrido": estado_carregado.get("tempo_decorrido", 0),
         }
 
         mapa_art = ESTADO_MAPAS[mapa_id]["mapa_art"]
@@ -491,6 +669,25 @@ def mini_mapa(
     MAP_HEIGHT = len(mapa_art)
     CAMERA_WIDTH = camera_w
     CAMERA_HEIGHT = camera_h
+    tempo_inicio = time.time()
+    tempo_decorrido = 0
+
+    if estado_carregado:
+        tempo_decorrido = estado_carregado.get("tempo_decorrido", 0)
+        # Ajusta tempo_inicio para que tempo_decorrido seja mantido
+        tempo_inicio = time.time() - tempo_decorrido
+
+
+    ESTADO_MAPAS[mapa_id]["tempo_inicio"] = tempo_inicio
+    ESTADO_MAPAS[mapa_id]["tempo_decorrido"] = tempo_decorrido
+
+    TEMPO_TOTAL_DIA = 15 * 60
+    PERIODOS = {
+        "dia": (0, TEMPO_TOTAL_DIA / 3),
+        "tarde": (TEMPO_TOTAL_DIA / 3, 2 * TEMPO_TOTAL_DIA / 3),
+        "noite": (2 * TEMPO_TOTAL_DIA / 3, TEMPO_TOTAL_DIA)
+    }
+    periodo_atual = "dia"
 
     if "plantacoes" not in ESTADO_MAPAS[mapa_id]:
         ESTADO_MAPAS[mapa_id]["plantacoes"] = {}
@@ -504,8 +701,59 @@ def mini_mapa(
         camera_y = max(0, min(MAP_HEIGHT - CAMERA_HEIGHT, player.y_mapa - CAMERA_HEIGHT // 2))
 
     while True:
-        px, py = player.x_mapa, player.y_mapa
-        caractere_atual = mapa_art[py][px]
+        if player.hp <= 0:
+            player_carregado, mapas_carregados = carregar_jogo_global(filename="save_global.json")
+            if player_carregado:
+                player = player_carregado
+                ESTADO_MAPAS = mapas_carregados
+                estado_mapa_salvo = ESTADO_MAPAS.get(player.mapa_atual)
+                if estado_mapa_salvo:
+                    mapa_art_para_load = estado_mapa_salvo["mapa_art"]
+                    cores_custom = estado_mapa_salvo.get("cores", None)
+                    obstaculos_custom = estado_mapa_salvo.get("obstaculos", None)
+                else:
+                    limpar_todos_os_saves()
+                    limpar_todos_os_player()
+                    config = mapa_procedural(nome=player.mapa_atual, largura=250, altura=10, seed=player.seed)
+                    mapa_art_para_load = config["mapa"]
+                    cores_custom = config.get("cores", None)
+                    obstaculos_custom = config.get("obstaculos", None)
+                x_p_load = player.x_mapa
+                y_p_load = player.y_mapa
+                mini_mapa(
+                    x_l=0,
+                    y_l=0,
+                    player=player,
+                    mapas_=mapa_art_para_load,
+                    camera_w=35,
+                    camera_h=15,
+                    x_p=x_p_load,
+                    y_p=y_p_load,
+                    menager="",
+                    mapa_nome=player.mapa_atual,
+                    cores_custom=cores_custom,
+                    obstaculos_custom=obstaculos_custom,
+                    ESTADO_GLOBAL_LOAD=mapas_carregados
+                )
+                status_ale_menor = random.choice('atk', 'def', 'atk/mn', 'int')
+                if status_ale_menor == 'atk':
+                    player.atk -= 2
+                elif status_ale_menor == 'def':
+                    player.defesa -= 2
+                elif status_ale_menor == 'atk/mn':
+                    player.d_m -= 2
+                elif status_ale_menor == 'int':
+                    player.intt -= 2
+            else:
+                exit()
+        
+        tempo_decorrido = (time.time() - tempo_inicio) % TEMPO_TOTAL_DIA
+        if PERIODOS["dia"][0] <= tempo_decorrido < PERIODOS["dia"][1]:
+            periodo_atual = "dia"
+        elif PERIODOS["tarde"][0] <= tempo_decorrido < PERIODOS["tarde"][1]:
+            periodo_atual = "tarde"
+        else:
+            periodo_atual = "noite"
         clear()
         regeneracoes = ESTADO_MAPAS[mapa_id].get("regeneracoes", {})
         tempo_atual = time.time()
@@ -544,6 +792,8 @@ def mini_mapa(
                 salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
 
         inimigo_chars = []
+        mobs_chars = []
+        boss = []
         def bau(pos_bau):
             if pos_bau in ESTADO_MAPAS[mapa_id]["baus_abertos"]:
                 return
@@ -689,7 +939,7 @@ def mini_mapa(
                 )
 
             def processar_transferencia(origem_lista, destino_lista, titulo_escolha):
-                """Função auxiliar para gerenciar a transferência de itens (Guardar/Pegar)."""
+                """Gerencia a transferência de itens (Guardar/Pegar) com controle exato de quantidades."""
                 if not origem_lista:
                     falas(f"A lista de origem ({titulo_escolha}) está vazia.")
                     return
@@ -697,34 +947,33 @@ def mini_mapa(
                 clear()
                 contagem_origem = Counter(item.nome for item in origem_lista)
                 itens_unicos = sorted(contagem_origem.keys())
-                itens_enumerados = []
-                mapeamento_escolha = {} 
-                
-                for i, item_nome in enumerate(itens_unicos):
-                    quantidade = contagem_origem[item_nome]
-                    display_text = f"{i+1}. {item_nome} ({quantidade}x)"
-                    itens_enumerados.append(display_text)
-                    mapeamento_escolha[i + 1] = item_nome
+                mapeamento_escolha = {i + 1: item_nome for i, item_nome in enumerate(itens_unicos)}
+
+                # Mostra os itens disponíveis
+                linhas_display = [
+                    f"{i}. {nome} ({contagem_origem[nome]}x)"
+                    for i, nome in mapeamento_escolha.items()
+                ]
                 draw_window(
-                    term, 
-                    x=x_l, 
-                    y=y_l, 
-                    width=40, 
-                    height=15, 
+                    term,
+                    x=x_l,
+                    y=y_l,
+                    width=40,
+                    height=15,
                     title=titulo_escolha,
-                    text_content="\n".join(itens_enumerados)
+                    text_content="\n".join(linhas_display)
                 )
 
                 with term.location(x=x_l, y=y_l + 16):
-                    entrada = input(term.bold("Digite [Nº Item] [Quantia] ou 0:")).strip().split()
-                
-                if not entrada or entrada[0].upper() == 'C':
+                    entrada = input(term.bold("Digite [Nº Item] [Quantia] ou 0 para cancelar: ")).strip().split()
+
+                if not entrada or entrada[0].upper() == '0':
                     return
-                
+
+                # Processa a entrada
                 try:
                     idx_escolhido = int(entrada[0])
                     quantia_desejada = int(entrada[1]) if len(entrada) > 1 else 1
-                    
                 except ValueError:
                     falas("Entrada inválida. Use o formato: [Nº Item] [Quantia].")
                     return
@@ -733,30 +982,33 @@ def mini_mapa(
                     falas("Número de item inválido.")
                     return
 
-                item_nome_selecionado = mapeamento_escolha.get(idx_escolhido)
-                
+                item_nome_selecionado = mapeamento_escolha[idx_escolhido]
+                quantidade_disponivel = contagem_origem[item_nome_selecionado]
+
                 if quantia_desejada <= 0:
                     falas("A quantidade deve ser maior que zero.")
                     return
-                
-                quantia_disponivel = contagem_origem[item_nome_selecionado]
+                if quantia_desejada > quantidade_disponivel:
+                    falas(f"Você só tem {quantidade_disponivel}x de {item_nome_selecionado}.")
+                    return
 
-                if quantia_desejada > quantia_disponivel:
-                    falas(f"Você só tem {quantia_disponivel}x de {item_nome_selecionado}.")
-                    return                
+                # Transfere exatamente a quantia pedida
                 itens_transferidos = 0
-                for _ in range(quantia_desejada):
-                    for i, item_obj in enumerate(origem_lista):
-                        if item_obj.nome == item_nome_selecionado:
-                            item = origem_lista.pop(i)
-                            destino_lista.append(item)
-                            itens_transferidos += 1
-                
+                novos_itens = []
+                for item_obj in origem_lista[:]:  # cópia para evitar modificação durante iteração
+                    if item_obj.nome == item_nome_selecionado:
+                        destino_lista.append(item_obj)
+                        origem_lista.remove(item_obj)
+                        itens_transferidos += 1
+                        if itens_transferidos >= quantia_desejada:
+                            break
+
                 if itens_transferidos > 0:
-                    falas(f"{itens_transferidos}x {item_nome_selecionado} foram {'guardados no baú' if destino_lista is bau_inventario else 'pegos do baú'}.")
+                    acao = "guardados no baú" if destino_lista is bau_inventario else "retirados do baú"
+                    falas(f"{itens_transferidos}x {item_nome_selecionado} foram {acao}.")
                     salvar_mapa_estado(save_filename, mapa_id, ESTADO)
                 else:
-                    falas("Não foi possível transferir o item.")
+                    falas("Nenhum item foi transferido.")
 
             while True:
                 exibir_telas_bau()
@@ -790,7 +1042,10 @@ def mini_mapa(
             for linha in mapa_art[camera_y:camera_y + CAMERA_HEIGHT]
         ]
         mini_mapa_render = "\n".join(janela_mapa)
-        draw_window(term, x=x_l, y=y_l, width=CAMERA_WIDTH + 4, height=CAMERA_HEIGHT + 2,title=f"{mapa_nome}", text_content=mini_mapa_render)
+        if player.mapa_atual == 'Mundo':
+            draw_window(term, x=x_l, y=y_l, width=CAMERA_WIDTH + 4, height=CAMERA_HEIGHT + 2,title=f"{mapa_nome} - {periodo_atual.capitalize()}", text_content=mini_mapa_render)
+        else:
+            draw_window(term, x=x_l, y=y_l, width=CAMERA_WIDTH + 4, height=CAMERA_HEIGHT + 2,title=f"{mapa_nome}", text_content=mini_mapa_render)
 
         draw_window(term, x=x_l + CAMERA_WIDTH + 5, y=y_l, width=CAMERA_WIDTH + 5, height=CAMERA_HEIGHT + 2, text_content=menager)
         player.barra_de_vida(x_l + CAMERA_WIDTH + 6, y_l=CAMERA_HEIGHT-14) 
@@ -830,8 +1085,6 @@ def mini_mapa(
                 if (px, py) not in ESTADO_MAPAS[mapa_id]["abrir_porta"]:
                     abrir_portas((px, py))
                     break
-            elif ch == 'M':
-                player.aprender_magias(term ,x_menu=x_l + CAMERA_WIDTH + 5, y_menu=y_l, wend=CAMERA_WIDTH + 5, herd=CAMERA_HEIGHT)
             elif ch == 'V':
                 player.gerenciar_loja(x=0, y=0, largura=30)
             if ch in ["G", "F"]:
@@ -870,48 +1123,63 @@ def mini_mapa(
                     mapa_art[py] = linha_antiga[:px] + '.' + linha_antiga[px + 1:]
                     salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
 
-        if mapas_ == mapas.praia.split("\n"):
-            for px, py, ch in proximos:
-                    if ch == '&':
-                        if player.itens_coletaodos["item_1"] == False:
-                            fala = 'Aqui está uma coisa para te ajudar\nfoi adicionado uma Bancada no\nIventario'
-                            player.itens_coletaodos["item_1"] = True
+        if player.mapa_atual == f'Caverna - [{player.andar}]':
+            if player.andar == 10:
+                if player.boss['Suny']== False:
+                    for px, py, ch in proximos:
+                        if ch == "@":
+                            fala = 'Um homem invadindo o meu meu lar? seu verme maldito irei te matar como matei os outros que já matei'
                             falas(fala)
-                            player.inventario.append(TODOS_OS_ITENS['Bancada'])
-                        elif player.itens_coletaodos["item_1"] == True:
-                            fala = 'Sabe aqui nesse ilha tem uma caverna aqui perto recomendo entrar lá para evoluir'
-                            falas(fala)
-                            substituir_caractere(mapa_art, 37, 6, ".")
-                            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    if ch == "%":
-                        limpar_todas_caverna()
-                        mapas_aleatorio(player)
-            adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'♠':10})
-            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+                            status = sun(player_b=player, art=ascii)
+                            inimigo_b = inimigo(
+                                nome=status['nome'],
+                                hp_max = status["hp"],
+                                atk=status['atk'],
+                                niv=status['niv'],
+                                xp=status['xp'],
+                                defesa=status['defesa'],
+                                gold = status['gold'],
+                                atk1 = status['atk_1'],
+                                atk2= status['atk_2'],
+                                art_ascii=status['art']
+                            )
+                            batalha(player_b=player, inimigo_b=inimigo_b)
+                            if inimigo_b.hp <= 0:
+                                player.inventario.append(TODOS_OS_ITENS['Chave do Dragão'])
+                                player.boss['Suny'] = True
+                                ESTADO_MAPAS[mapa_id]["inimigos_derrotados"].add((px, py))
+                                linha_antiga = mapa_art[py]
+                                mapa_art[py] = linha_antiga[:px] + '.' + linha_antiga[px + 1:]
+                                salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
 
-        elif mapas_ == mapas.caverna.split("\n"):
-            adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'o': 25, 'G': 5, 'F': 5, 'B': 5, '!': 1})
-            obstaculos_inimigo = ['o', 'G', 'F', 'B', f'{player.skin}', '!',"#"]
-            inimigo_chars = ["F","G"]
-            if caractere_atual == '!':
-                player.andar += 1
-                limpar_todas_caverna()
-                mapas_aleatorio(player)
-            
-            mover_inimigos_para_jogador(mapa_art, player=player, obstaculos=obstaculos_inimigo, inimigo_chars=inimigo_chars, estado_mapa=ESTADO_MAPAS[mapa_id], raio_visao=5)
-            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+                obstaculos_inimigo = ['o', 'G', 'F', 'B', f'{player.skin}','u',"#",'c', "@"]
+                inimigo_chars = ["F","G"]
+                boss = ['@']
+                mover_inimigos_para_jogador(mapa_art, player=player, obstaculos=obstaculos_inimigo, inimigo_chars=boss, estado_mapa=ESTADO_MAPAS[mapa_id], raio_visao=10)
+                mover_inimigos_para_jogador(mapa_art, player=player, obstaculos=obstaculos_inimigo, inimigo_chars=inimigo_chars, estado_mapa=ESTADO_MAPAS[mapa_id], raio_visao=5)
+                salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
 
-        elif mapas_ == mapas.caverna2.split("\n"):
-            adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'o': 25, 'G': 5, 'F': 5, 'B': 5, '!': 1})
-            obstaculos_inimigo = ['o', 'G', 'F', 'B', f'{player.skin}', '!',"#"]
-            inimigo_chars = ["F","G"]
-            if caractere_atual == '!':
-                player.andar += 1
-                limpar_todas_caverna()
-                mapas_aleatorio(player)
-            
-            mover_inimigos_para_jogador(mapa_art, player=player, obstaculos=obstaculos_inimigo, inimigo_chars=inimigo_chars, estado_mapa=ESTADO_MAPAS[mapa_id], raio_visao=5)
-            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+        if player.mapa_atual == 'Mundo':
+            largura = 250
+            altura = 125
+            total = largura * altura
+            if periodo_atual == 'noite':
+                adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'G': int(total * 0.0006), 'F': int(total * 0.0003)})
+                obstaculos_inimigo = {'#', '♣', '&', "C", '‼', '¥', 'o', '0', '1', '„', '♠', 'x', '$', '+', 'P', '\\', '!'}
+                inimigo_chars = ['F', 'R']
+                mover_inimigos_para_jogador(mapa_art, player=player, obstaculos=obstaculos_inimigo, inimigo_chars=inimigo_chars, estado_mapa=ESTADO_MAPAS[mapa_id], raio_visao=7)
+                salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+            elif periodo_atual == 'dia':
+                limites = {'N': 20, 'I': 15}
+                if contar_caracteres_no_mapa(mapa_art, limites):
+                    pass
+                else:
+                    adicionar_caracteres_aleatorios(mapa_id, ESTADO_MAPAS[mapa_id], caracteres_quantidades={'N':int(total * 0.0006), 'I':int(total * 0.0003)})
+                    obstaculos_animais = {'#', '♣', '&', "C", '‼', '¥', 'o', '0', '1', '„', '♠', 'x', '$', '+', 'P', '\\', '!'}
+                    mobs_chars = ['N', 'I']
+                mover_aleatorio(mapa_art,obstaculos=obstaculos_animais, mobs_chars=mobs_chars, estado_mapa=ESTADO_MAPAS[mapa_id])
+                remover_caracteres(mapa_art, caracteres_para_remover=['F', 'G'])
+                salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
 
         if feedback_message:
             with term.location(x_l , CAMERA_HEIGHT + y_l + 3):
@@ -961,8 +1229,20 @@ def mini_mapa(
                         feedback_message = "Você está sobre uma semente plantada."
 
         else:
+            px, py = player.x_mapa, player.y_mapa
+            caractere_atual = mapa_art[py][px]
+
             if movi == "i":
                 player.inventario_(x=x_l + CAMERA_WIDTH + 5, y=y_l, werd=CAMERA_WIDTH + 5, herd=0, batalha=False)
+
+            elif movi == 'help':
+                def lista_de_comandos():
+                    clear()
+                    print('[1]Abrir o inventario: Digite i\n[2]Abrir as melhorias Digite: Digite up\n[3]Quebrar itens: Digite r\n[4]Colocar itens: equipe um bloco e digite usar[num] por exemplo usar 1\n[5]Para intaragir com objetos: Digite x\n[6]Para cavar um buraco ou arar a terra: Digite e\n[7]Para entrar em uma caverna: cave um buraco depois Digite x')
+                    print("[8]Para sair das caverna: Digite jump\n[9]Para ir ao proximo andar das caverna: faça um buraco\n[10]Para sair: Digite sair\n[11]Para salvar: Digite save\n[12]Você inicia com uma Bancada para a usar coloque ela no chão depois interaja com ela e veja tudo\n[13]Sistema de movimentação: WASD com ordem numerica ou seja w 10")
+                    print("[16]Para plantar equipe a semente are a terra depois utilize o comando usar [num]\n[15]Para ver os comando novamente: Digite help")
+                    input("Pressione Enter")
+                lista_de_comandos()
             
             elif movi == "sair":
                 exit()
@@ -970,158 +1250,43 @@ def mini_mapa(
             elif movi == "up":
                 player.up(x=x_l + CAMERA_WIDTH + 5, y=y_l, werd=CAMERA_WIDTH + 5, herd=CAMERA_HEIGHT + 2, x_i = 1)
             
-            elif movi == 'r':
-                for px, py, ch in proximos:
-                    if ch == '♣':
-                        pos = (px, py)
-                        interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
-                        tentativas = interacoes_contagem[pos]
-                        item_equipado = player.equipa.get("m_pri")
-                        if item_equipado and item_equipado.nome.lower() == "machado" or item_equipado and item_equipado.nome.lower() ==  'picareta':
-                            if item_equipado and item_equipado.nome.lower() == "machado":
-                                if tentativas == 1:
-                                    feedback_message == 'Você quebrou uma Arvore'
-                                    linha_antiga = mapa_art[py]
-                                    mapa_art[py] = linha_antiga[:px] + '.' + linha_antiga[px + 1:]
-                                    interacoes_contagem.pop(pos, None)
-                                    for _ in range(5):
-                                        player.inventario.append(TODOS_OS_ITENS["Madeira"])
-                                    player.inventario.append(TODOS_OS_ITENS['Muda/Arvore'])
-                                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                                    break
-                            elif item_equipado and item_equipado.nome.lower() == "picareta":
-                                if tentativas == 1:
-                                    feedback_message = 'Você começos a cortar a Arvore'
-                                elif tentativas == 2:
-                                    feedback_message = 'Você continuar cortando'
-                                elif tentativas == 3:
-                                    feedback_message = 'Você quebrou a Arvore'
-                                    linha_antiga = mapa_art[py]
-                                    mapa_art[py] = linha_antiga[:px] + '.' + linha_antiga[px + 1:]
-                                    interacoes_contagem.pop(pos, None)
-                                    for _ in range(5):
-                                        player.inventario.append(TODOS_OS_ITENS["Madeira"])
-                                    player.inventario.append(TODOS_OS_ITENS['Muda/Arvore'])
-                                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                                    break
-                        else:
-                            feedback_message = 'Você precisa de um machado ou uma picareta'
-                    elif ch == '♠':
-                        pos = (px, py)
-                        interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
-                        tentativas = interacoes_contagem[pos]
-                        if tentativas == 1:
-                            feedback_message = "Você colheu um arbusto"
-                            linha_antiga = mapa_art[py]             
-                            mapa_art[py] = linha_antiga[:px] + 'x' + linha_antiga[px + 1:]
-                            interacoes_contagem.pop(pos, None) 
-                            cair = random.randint(1, 5)                   
-                            for _ in range(cair):
-                                player.inventario.append(TODOS_OS_ITENS["Fruta"])
-                            
-                            ESTADO_MAPAS[mapa_id]["regeneracoes"][(px, py)] = {
-                                "tempo_inicio": time.time(),
-                                "tempo_regeneracao": 30,}
-                            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-
-                        break 
-                    elif ch == '¥':
-                        pos = (px, py)
-                        interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
-                        tentativas = interacoes_contagem[pos]
-                        if tentativas == 1:
-                            feedback_message = "Você coletou o Milho"
-                            quantia_s = random.randint(1, 5)
-                            quantia = random.randint(1, 5)
-                            linha_antiga = mapa_art[py]
-                            mapa_art[py] = linha_antiga[:px] + '=' + linha_antiga[px + 1:]
-                            interacoes_contagem.pop(pos, None)
-                            for _ in range(quantia):
-                                player.inventario.append(TODOS_OS_ITENS["Milho"])
-                            for _ in range(quantia_s):
-                                player.inventario.append(TODOS_OS_ITENS["Semente/Milho"])
-                            
-                            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                        break
-                    elif ch == 'x':
-                        pos = (px, py)
-                        interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
-                        tentativas = interacoes_contagem[pos]
-                        if tentativas == 1:
-                            feedback_message = "Você começa a cortar o arbusto..."
-                        elif tentativas == 2:
-                            feedback_message = "O arbusto caio..."
-                            linha_antiga = mapa_art[py]
-                            mapa_art[py] = linha_antiga[:px] + '.' + linha_antiga[px + 1:]
-                            interacoes_contagem.pop(pos, None)
-                            if pos in ESTADO_MAPAS[mapa_id].get("regeneracoes", {}):
-                                del ESTADO_MAPAS[mapa_id]["regeneracoes"][pos]
-                            for _ in range(2):
-                                player.inventario.append(TODOS_OS_ITENS["Madeira"])
-                            player.inventario.append(TODOS_OS_ITENS['Semente/Arbusto'])
-                            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    elif ch == '#':
-                        if mapas_ == mapas.praia.split("\n"):
-                            pos = (px, py)
-                            interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
-                            tentativas = interacoes_contagem[pos]
-                            item_equipado = player.equipa.get("m_pri")
-                            if item_equipado and item_equipado.nome.lower() == "machado":
-                                if tentativas == 1:
-                                    feedback_message = 'Você quebrou a Madeira'
-                                substituir_caractere(mapa_art, px, py, '.')
-                                player.inventario.append(TODOS_OS_ITENS['Madeira'])
-                                salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                            else:
-                                feedback_message = 'Você precisa de um machado'
-                        else:
-                            pass
-                    elif ch == 'o':
-                        pos = (px, py)
-                        interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
-                        tentativas = interacoes_contagem[pos]
-                        item_equipado = player.equipa.get("m_pri")
-                        if item_equipado and item_equipado.nome.lower() == "picareta":
-                            if tentativas == 1:
-                                feedback_message = 'Você quebrou uma Pedra'
-                            substituir_caractere(mapa_art, px, py, '.')
-                            player.inventario.append(TODOS_OS_ITENS['Pedra'])
-                            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                        else:
-                            feedback_message = 'Você precisa de uma Picareta'
-                    elif ch == '‼':
-                        pos = (px, py)
-                        interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
-                        tentativas = interacoes_contagem[pos]
-                        if tentativas == 1:
-                            feedback_message = "Você coletou o Trigo"
-                            quantia_s = random.randint(1, 5)
-                            quantia = random.randint(1, 5)
-                            linha_antiga = mapa_art[py]
-                            mapa_art[py] = linha_antiga[:px] + '=' + linha_antiga[px + 1:]
-                            interacoes_contagem.pop(pos, None)
-                            for _ in range(quantia):
-                                player.inventario.append(TODOS_OS_ITENS["Trigo"])
-                            for _ in range(quantia_s):
-                                player.inventario.append(TODOS_OS_ITENS["Semente/Trigo"])
-                            
-                            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                        break
-
             elif movi == 'jump':
-                if mapas_ in (mapas.caverna.split("\n"), mapas.caverna2.split("\n")):
-                    config = mapa_prai()
-                    mini_mapa(
+                player.andar = 0
+                salvar_jogo_player(player)
+                config_player = carregar_jogo_player()
+                if config_player is None:
+                    feedback_message = ""
+                    continue
+                config = mapa_procedural(
+                    nome="Mundo",
+                    largura=100,
+                    altura=30,
+                    seed=config_player.seed
+                )
+                mini_mapa(
                     x_l=0, y_l=0,
-                    player=player,
+                    player=config_player,
                     mapas_=config["mapa"],
-                    camera_w=35, camera_h=15,
-                    x_p=37, y_p=18,
+                    camera_w=35,
+                    camera_h=15,
+                    x_p=config_player.x_mapa,
+                    y_p=config_player.y_mapa,
                     menager="",
                     cores_custom=config["cores"],
                     obstaculos_custom=config["obstaculos"],
                     mapa_nome=config["nome"]
+                )
+                break
+
+            elif movi == 'r':
+                for px, py, ch in proximos:
+                    feedback_message = interagir_com_objeto(
+                        px, py, ch, player, mapa_art, mapa_id, interacoes_contagem,
+                        ESTADO_MAPAS, TODOS_OS_ITENS, save_filename, mapas_,
+                        salvar_mapa_estado, substituir_caractere
                     )
+                    if feedback_message:
+                        break
 
             elif movi == "e":
                 chao_atual = mapa_art[player.y_mapa][player.x_mapa]
@@ -1134,23 +1299,46 @@ def mini_mapa(
                     if item_equipado and item_equipado.nome.lower() == 'pá':
                         if caractere_atual == '.':
                             tipo = 'terra'
-                            tempo_crescimento = 25
+                            tempo_crescimento = 50
                             substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, ",")
                             ESTADO_MAPAS[mapa_id]["plantacoes"][(player.x_mapa, player.y_mapa)] = {
                             "item": tipo,
                             "tempo_plantio": time.time(),
                             "tempo_crescimento": tempo_crescimento,}
                             salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                            itens_ale = random.choice('Semente/Trigo', 'Semente/Milho', 'Semente/Abobora')
-                            player.inventario.append(TODOS_OS_ITENS[f'{itens_ale}'])
-                            feedback_message = f'Você cavou um buraco\nconseguio um {itens_ale}'
+                            itens_ale = random.choice(["Semente/Trigo", "Semente/Milho", "Semente/Abobora",'Nada','Nada','Nada',
+                                'Nada','Nada','Nada','Nada'])
+                            if itens_ale == 'Nada':
+                                pass 
+                            else:
+                                player.inventario.append(TODOS_OS_ITENS[f"{itens_ale}"])
+                                feedback_message = f'Você cavou um buraco\nconseguio um {itens_ale}'
+
                         elif caractere_atual == ',':
                             feedback_message = 'Você já existe um buraco aqui'
-
+                        elif caractere_atual == '=':
+                            feedback_message = 'Você fez a terra arada em terra'
+                            substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, ".")
+        
             elif movi == 'x':
+                if caractere_atual == ',':
+                    player.andar += 1
+                    limpar_todas_caverna()
+                    ale_seed = random.randint(1, 50)
+                    config = mapa_caverna(nome=f"Caverna - [{player.andar}]", largura=250, altura=125, player_b=player,seed=ale_seed)
+                    mini_mapa(
+                        x_l=0, y_l=0,
+                        player=player,
+                        mapas_=config["mapa"],
+                        camera_w=35, camera_h=15,
+                        x_p=player.x_mapa, y_p=player.y_mapa,
+                        menager="",
+                        cores_custom=config["cores"],
+                        obstaculos_custom=config["obstaculos"],
+                        mapa_nome=config["nome"]
+                    )
+                        
                 for px, py, ch in proximos:
-                    if ch == '%':
-                        feedback_message = 'Entrando nas Caverna'
                     if ch == "$":
                         bau_armazenamento((px, py))
                         break
@@ -1166,103 +1354,27 @@ def mini_mapa(
                             mapa_art[py] = linha_antiga[:px] + '*' + linha_antiga[px + 1:]
                             ESTADO_MAPAS[mapa_id]["regeneracoes"].pop(pos, None)
                             feedback_message = "O arbusto voltou a dar frutos!"
+                    if ch == 'P':
+                        if player.boss['Suny'] == False:
+                            fala = random.choice([dialogo.padre_1, dialogo.padre_2, dialogo.padre_3])
+                            falas(fala)
+                        else:
+                            falas(dialogo.padre_4)
+                            player.aprender_magias(term ,x_menu=x_l + CAMERA_WIDTH + 5, y_menu=y_l, wend=CAMERA_WIDTH + 5, herd=CAMERA_HEIGHT)
+                    if ch == '&':
+                        if player.boss['Suny']== False:
+                            fala = random.choice([dialogo.aldao_1, dialogo.aldao_2,dialogo.aldao_3])
+                            falas(fala)
+                        else:
+                            fala = random.choice([dialogo.aldao_1, dialogo.aldao_2,dialogo.aldao_3,dialogo.aldao_4,dialogo.aldao_5])
+                            falas(fala)
 
             elif movi == "usar":
-                if mapas_ == mapas.praia.split('\n'):
-                    if len(entrada) > 1 and entrada[1].isdigit():
-                        indice = int(entrada[1]) - 1
-                        if 0 <= indice < 4:
-                            slot_nome = f"slot_{indice + 1}"
-                            material_slot = player.matariais['slots'].get(slot_nome)
-                            if material_slot:
-                                item_escolhido = material_slot
-                                if item_escolhido not in player.inventario:
-                                    feedback_message = f"O item {item_escolhido.nome} não está mais no inventário. Slot liberado."
-                                    player.matariais['slots'][slot_nome] = None
-                                else:
-                                    if item_escolhido.nome == "Madeira":
-                                        feedback_message = "Você colocou Madeira."
-                                        substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, "#")
-                                        player.inventario.remove(item_escolhido)
-                                        salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                                    elif item_escolhido.nome == "Bancada":
-                                        feedback_message = "Você colocou Bancada."
-                                        substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, "C")
-                                        player.inventario.remove(item_escolhido)
-                                        salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                                    elif item_escolhido.nome == "Pedra":
-                                        feedback_message = "Você colocou Pedra."
-                                        substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, "#")
-                                        player.inventario.remove(item_escolhido)
-                                        salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                                    elif item_escolhido.nome == "Bau":
-                                        feedback_message = "Você colocou Bau."
-                                        substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, "$")
-                                        player.inventario.remove(item_escolhido)
-                                        salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                                    
-                                    elif item_escolhido.nome in ['Semente/Arbusto', 'Semente/Abobora', 'Semente/Milho', 'Semente/Trigo', 'Muda/Arvore']:
-                                        if item_escolhido.nome == "Semente/Trigo":
-                                            tipo = "trigo"
-                                            tempo_crescimento = 30
-                                        elif item_escolhido.nome == "Semente/Milho":
-                                            tipo = "milho"
-                                            tempo_crescimento = 30
-                                        elif item_escolhido.nome == 'Semente/Abobora':
-                                            tipo = 'abobora'
-                                            tempo_crescimento = 60
-                                        elif item_escolhido.nome == 'Muda/Arvore':
-                                            tipo = 'arvore'
-                                            tempo_crescimento = 120
-                                        elif item_escolhido.nome == 'Semente/Arbusto':
-                                            tipo = 'arbusto'
-                                            tempo_crescimento = 20
-                                        if tipo in ('trigo', 'milho', 'abobora'):
-                                            if mapa_art[player.y_mapa][player.x_mapa] != "=":
-                                                feedback_message = "Você só pode plantar sementes em solo arado ('=')."
-                                                continue
-                                        elif tipo in ('arvore', 'arbusto'):
-                                            if mapa_art[player.y_mapa][player.x_mapa] != ".":
-                                                feedback_message = "Você só pode plantar a muda em terra('.')."
-                                        if tipo in ('trigo', 'milho', 'abobora'):
-                                            substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, "*")
-                                        elif tipo in ('arvore', 'arbusto'):
-                                            substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, "1")
-                                        
-                                        ESTADO_MAPAS[mapa_id]["plantacoes"][(player.x_mapa, player.y_mapa)] = {
-                                            "item": tipo,
-                                            "tempo_plantio": time.time(),
-                                            "tempo_crescimento": tempo_crescimento,
-                                        }
+                feedback_message = usar_item(
+                    player, entrada, mapa_art, mapa_id, ESTADO_MAPAS, TODOS_OS_ITENS,
+                    save_filename, mapas_, salvar_mapa_estado, substituir_caractere
+                )
 
-                                        player.inventario.remove(item_escolhido)
-                                        salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                                        feedback_message = f"Você plantou {tipo.capitalize()}!"
-                                    elif item_escolhido.nome == "Pedra":
-                                        feedback_message = "Você criou uma fundação sólida."
-                                        player.inventario.remove(item_escolhido)
-                                        salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                                    else:
-                                        feedback_message = f"Você usou o material {item_escolhido.nome}!"
-                                        
-                                    tem_mais = any(i.nome == item_escolhido.nome for i in player.inventario)
-                                    if not tem_mais:
-                                        player.matariais['slots'][slot_nome] = None 
-
-                            else:
-                                feedback_message = f"O slot {indice + 1} está vazio."
-                        elif indice < len(player.inventario):
-                            item_escolhido = player.inventario[indice]
-
-                            if item_escolhido.tipo == "Material":
-                                feedback_message = "Você precisa equipar esse material em um slot para usá-lo."
-                            else:
-                                feedback_message = f"Você usou o item {item_escolhido.nome}!"
-                        else:
-                            feedback_message = "Número inválido."
-                    else:
-                        feedback_message = "Use: usar [número]"
-                    
             elif movi == "save":
                 salvar_jogo_global(player, ESTADO_MAPAS)
                 feedback_message = "Jogo salvo com sucesso."
@@ -1272,7 +1384,8 @@ def mini_mapa(
 
 
 """config = mapa_prai()
-player.inventario.append(TODOS_OS_ITENS['Machado'])
+limpar_todos_os_saves()
+player.inventario.append(TODOS_OS_ITENS['Enchada'])
 player.inventario.append(TODOS_OS_ITENS['Picareta'])
 mini_mapa(
 x_l=0, y_l=0,

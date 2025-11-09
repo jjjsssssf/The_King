@@ -1,4 +1,4 @@
-from jogo import mini_mapa, carregar_mapa_estado, limpar_todos_os_saves, limpar_todos_os_saves_p, carregar_jogo_global
+from jogo import *
 from classe_arts import draw_window, term, clear, mini_mapa_
 import random, time, string
 from classe_do_jogador import jogador
@@ -29,7 +29,6 @@ def menu_inicial(x_l, y_l):
             escolha = input(">")
         if escolha == "1":
             limpar_todos_os_saves()
-            limpar_todos_os_saves_p()
             dificuldade_key = escolher_dificudade(x_l, y_l, menu_art)
             nome = solicitar_nome(x_l, y_l, menu_art)
             skin_arte, cor_final, skin_nome = escolher_personagem(x_l, y_l) 
@@ -49,33 +48,45 @@ def menu_inicial(x_l, y_l):
                 skin=cor_final,     
                 skin_nome=skin_nome 
             )
+            seed_random = random.randint(1, 50)
+            x_random = random.randint(1, 100)
+            y_random = random.randint(1, 30)
+            jj.seed = seed_random
             jj.dificuldade_atual = dificuldade_key
-            config = mapa_prai()
-            jj.inventario.append(TODOS_OS_ITENS['Picareta'])
+            limpar_todos_os_saves()
+            limpar_todos_os_player()
+            jj.inventario.append(TODOS_OS_ITENS['Bancada'])
+            lista_de_comandos()
+            config = mapa_procedural(nome="Mundo", largura=250, altura=125, seed=jj.seed)
             mini_mapa(
-            x_l=0, y_l=0,
-            player=jj,
-            mapas_=config["mapa"],
-            camera_w=35, camera_h=15,
-            x_p=37, y_p=18,
-            menager="",
-            cores_custom=config["cores"],
-            obstaculos_custom=config["obstaculos"],
-            mapa_nome=config["nome"]
+                x_l=0, y_l=0,
+                player=jj,
+                mapas_=config["mapa"],
+                camera_w=35, camera_h=15,
+                x_p=x_random, y_p=y_random,
+                menager="",
+                cores_custom=config["cores"],
+                obstaculos_custom=config["obstaculos"],
+                mapa_nome=config["nome"]
             )
-                
         elif escolha == "2":
             player_carregado, mapas_carregados = carregar_jogo_global(filename="save_global.json")
             if player_carregado:
                 jj = player_carregado
                 ESTADO_MAPAS = mapas_carregados
 
-                mapa_nome_load = jj.mapa_atual
-                mapa_art_para_load = {
-                    f"Caverna-[{player_b.andar}]": mapas.caverna2.split('\n'),
-                    f"Caverna-[{player_b.andar}]": mapas.caverna.split('\n'),
-                    "Praia": mapas.praia.split('\n')
-                }.get(mapa_nome_load, mapas.praia.split('\n'))
+                estado_mapa_salvo = ESTADO_MAPAS.get(jj.mapa_atual)
+                if estado_mapa_salvo:
+                    mapa_art_para_load = estado_mapa_salvo["mapa_art"]
+                    cores_custom = estado_mapa_salvo.get("cores", None)
+                    obstaculos_custom = estado_mapa_salvo.get("obstaculos", None)
+                else:
+                    limpar_todos_os_saves()
+                    limpar_todos_os_player()
+                    config = mapa_procedural(nome=jj.mapa_atual, largura=100, altura=30, seed=42)
+                    mapa_art_para_load = config["mapa"]
+                    cores_custom = config.get("cores", None)
+                    obstaculos_custom = config.get("obstaculos", None)
 
                 x_p_load = jj.x_mapa
                 y_p_load = jj.y_mapa
@@ -89,13 +100,11 @@ def menu_inicial(x_l, y_l):
                     x_p=x_p_load,
                     y_p=y_p_load,
                     menager="",
-                    mapa_nome=mapa_nome_load,
-                    obstaculos_custom=None,
-                    cores_custom=None,
+                    mapa_nome=jj.mapa_atual,
+                    cores_custom=cores_custom,
+                    obstaculos_custom=obstaculos_custom,
                     ESTADO_GLOBAL_LOAD=mapas_carregados
-
                 )
-            else:
                 with term.location(x_l+27, y=y_l+herd+6):
                     print(term.red("Nenhum save encontrado!"))
                     input("Pressione ENTER para continuar...")
@@ -164,13 +173,16 @@ def escolher_cor(caractere, x_l, y_l):
         "1": C.AZUL,
         "2": C.AMARELO,
         "3": C.VERDE,
-        "4": C.VERMELHO
+        "4": C.VERMELHO,
+        "5": term.magenta,
+        "6": term.cyan,
+        '7': term.white
     }
     while True:
         with term.location(x=x_l+2, y=y_l+15):
             print("Escolha um Cor: ")
         with term.location(x=x_l+2, y=y_l+16):
-            print(f"{C.AZUL}[1]Azul {C.AMARELO}[2]Amarelo {C.VERDE}[3]Verde {C.VERMELHO}[4]Vermelho")
+            print(f"{C.AZUL}[1]Azul {C.AMARELO}[2]Amarelo {C.VERDE}[3]Verde {C.VERMELHO}[4]Vermelho {term.magenta}[5]Roxo {term.cyan}[6]Ciano {term.white}[7]Branco")
         with term.location(x=x_l+2, y=y_l+17):
             escolha = input(">")
         if escolha in cores:
@@ -199,5 +211,12 @@ def escolher_dificudade(x_l, y_l, menu_art):
             return 'Dificil'
         else:
             mostrar_mensagem(x_l+26, y_l+num_linhas+6, "Opção inválida. Use 1, 2 ou 3.")
+
+def lista_de_comandos():
+    clear()
+    print('[1]Abrir o inventario: Digite i\n[2]Abrir as melhorias Digite: Digite up\n[3]Quebrar itens: Digite r\n[4]Colocar itens: equipe um bloco e digite usar[num] por exemplo usar 1\n[5]Para intaragir com objetos: Digite x\n[6]Para cavar um buraco ou arar a terra: Digite e\n[7]Para entrar em uma caverna: cave um buraco depois Digite x')
+    print("[8]Para sair das caverna: Digite jump\n[9]Para ir ao proximo andar das caverna: faça um buraco\n[10]Para sair: Digite sair\n[11]Para salvar: Digite save\n[12]Você inicia com uma Bancada para a usar coloque ela no chão depois interaja com ela e veja tudo\n[13]Sistema de movimentação: WASD com ordem numerica ou seja w 10")
+    print("[16]Para plantar equipe a semente are a terra depois utilize o comando usar [num]\n[15]Para ver os comando novamente: Digite help")
+    input("Pressione Enter")
 
 menu_inicial(x_l=0, y_l=0)

@@ -23,50 +23,59 @@ class Item:
 TODOS_OS_ITENS = {
     ###ARMAS
     "Espada": Item(nome=f"Espada", tipo="Equipavel", preco=100, bonus_atk=10, slot_equip="m_pri", nivel=1),
-    "Picareta/Madeira": Item(nome='Picareta/Madeira', tipo='Equipavel', preco=100, bonus_def=2, slot_equip="m_ter",nivel=1),
-    "Picareta/Pedra": Item(nome='Picareta/Pedra', tipo='Equipavel', preco=100, bonus_def=4, slot_equip="m_ter",nivel=1),
-    "Pá": Item(nome='Pá', tipo='Equipavel', preco=100, slot_equip="m_ter", nivel=1),
-    "Enchada": Item(nome='Enchada', tipo='Equipavel', preco=100, slot_equip="m_ter", nivel=1),
-    'Machado/Pedra': Item(nome='Machado/Pedra', tipo='Equipavel', preco=100, bonus_atk=4, slot_equip="m_ter", nivel=1),
-    'Machado/Madeira': Item(nome='Machado/Madeira', tipo='Equipavel', preco=100, bonus_atk=2, slot_equip="m_ter", nivel=1),
+    "Vara de Pesca": Item(nome=f"Vara de Pesca", tipo="Equipavel", preco=100, bonus_atk=2, slot_equip="m_seg", nivel=1),
+    "Picareta/Madeira": Item(nome='Picareta/Madeira', tipo='Equipavel', preco=100, bonus_def=2, slot_equip="m_seg",nivel=1),
+    "Picareta/Pedra": Item(nome='Picareta/Pedra', tipo='Equipavel', preco=200, bonus_def=4, slot_equip="m_seg",nivel=1),
+    "Pá": Item(nome='Pá', tipo='Equipavel', preco=100, slot_equip="m_seg", nivel=1),
+    "Enchada": Item(nome='Enchada', tipo='Equipavel', preco=100, slot_equip="m_seg", nivel=1),
+    'Machado/Pedra': Item(nome='Machado/Pedra', tipo='Equipavel', preco=200, bonus_atk=4, slot_equip="m_seg", nivel=1),
+    'Machado/Madeira': Item(nome='Machado/Madeira', tipo='Equipavel', preco=100, bonus_atk=2, slot_equip="m_seg", nivel=1),
     ##CONS
-    "Fruta": Item(nome="Fruta", tipo="Consumivel", preco=50, bonus_hp=25, bonus_stm=25),
-    'Bolo de Milho': Item(nome="Bolo de Milho", tipo="Consumivel", preco=50, bonus_hp=25, bonus_stm=25),
-    "Elixir": Item(nome="Elixir", tipo="Consumivel", preco=50, bonus_mana=50),
-    "Suco": Item(nome="Suco", tipo="Consumivel", preco=50, bonus_stm=50),
-    "Pão": Item(nome="Pão", tipo="Consumivel", preco=50, bonus_hp=50, bonus_stm=50),
-    "Torta de Abobora": Item(nome="Torta de Abobora", tipo="Consumivel", preco=50, bonus_hp=100, bonus_stm=50),
-    'Poção de Cura': Item(nome="Poção de Cura", tipo="Consumivel", preco=100, bonus_hp=int(100*0.5)),
+    "Fruta": Item(nome="Fruta", tipo="Consumivel", preco=30, bonus_hp=20, bonus_stm=10),
+    "Pão": Item(nome="Pão", tipo="Consumivel", preco=50, bonus_hp=40, bonus_stm=20),
+    "Leite": Item(nome="Leite", tipo="Consumivel", preco=60, bonus_hp=25, bonus_stm=25),
+    "Ovo": Item(nome="Ovo", tipo="Consumivel", preco=40, bonus_hp=15, bonus_stm=10),
+    "Queijo": Item(nome="Queijo", tipo="Consumivel", preco=120, bonus_hp=50, bonus_stm=50),
+    "Sopa de Legumes": Item(nome="Sopa de Legumes", tipo="Consumivel", preco=180, bonus_hp=120, bonus_stm=100),
+    "Bolo de Milho": Item(nome="Bolo de Milho", tipo="Consumivel", preco=220, bonus_hp=100, bonus_stm=80),
+    "Torta de Abobora": Item(nome="Torta de Abobora", tipo="Consumivel", preco=300, bonus_hp=200, bonus_stm=150),
+    "Pizza": Item(nome="Pizza", tipo="Consumivel", preco=500, bonus_hp=350, bonus_stm=30),
+    "Elixir": Item(nome="Elixir", tipo="Consumivel", preco=400, bonus_mana=200),
+    "Poção de Cura": Item(nome="Poção de Cura", tipo="Consumivel", preco=350, bonus_hp=250),
+    "Suco": Item(nome="Suco", tipo="Consumivel", preco=250, bonus_stm=150),
+    "Ovo Frito": Item(nome="Ovo Frito", tipo="Consumivel", preco=120, bonus_hp=80, bonus_stm=60),
+    "Tilapia": Item(nome="Tilapia", tipo="Consumivel", preco=120, bonus_hp=40, bonus_stm=30),
+    "Salmão": Item(nome="Salmão", tipo="Consumivel", preco=120, bonus_hp=40, bonus_stm=30),
     ##ARDUR
-    "Peitoral": Item(nome="Peitoral", tipo="Equipavel", preco=150, bonus_def=5, bonus_hp_max=50,slot_equip="p_pet"),
-    "Elmo/Ferro": Item(nome="Elmo/Ferro", tipo="Equipavel", preco=100, bonus_def=2, bonus_hp_max=25,slot_equip="c_cap"),
+    "Peitoral": Item(nome="Peitoral", tipo="Equipavel", preco=1500, bonus_def=5, bonus_hp_max=50,slot_equip="p_pet"),
+    "Elmo/Ferro": Item(nome="Elmo/Ferro", tipo="Equipavel", preco=1500, bonus_def=2, bonus_hp_max=25,slot_equip="c_cap"),
     ##Chaves
     "Chave": Item(nome='Chave', tipo="Chave", preco=0, vendivel=False, comprável=False),
     "Chave do Dragão": Item(nome='Chave do Dragão', tipo="Chave", preco=0, vendivel=False, comprável=False),
     ##Coletaveis
-    "Madeira": Item(nome="Madeira", tipo="Material", slot_equip="slots"),
-    "Chão": Item(nome="Chão", tipo="Material", slot_equip="slots"),
-    "Porta": Item(nome="Porta", tipo="Material", slot_equip="slots"),
-    "Bau": Item(nome="Bau", tipo="Material", slot_equip="slots"),
-    "Pedra": Item(nome="Pedra", tipo="Material", slot_equip="slots"),
-    "Bancada": Item(nome="Bancada", tipo="Material", slot_equip="slots"),
-    "Semente/Trigo": Item(nome="Semente/Trigo", tipo="Material", slot_equip="slots"),
-    "Semente/Abobora": Item(nome="Semente/Abobora", tipo="Material", slot_equip="slots"),
-    "Semente/Milho": Item(nome="Semente/Milho", tipo="Material", slot_equip="slots"),
-    'Muda/Arvore': Item(nome="Muda/Arvore", tipo="Material", slot_equip="slots"),
-    'Semente/Arbusto': Item(nome="Semente/Arbusto", tipo="Material", slot_equip="slots"),
-    'Forja': Item(nome="Forja", tipo="Material", slot_equip="slots"),
-
+    "Madeira": Item(nome="Madeira", tipo="Material", slot_equip="slots",vendivel=False, comprável=False),
+    "Cerca": Item(nome="Cerca", tipo="Material", slot_equip="slots",vendivel=False, comprável=False),
+    "Chão": Item(nome="Chão", tipo="Material", slot_equip="slots",vendivel=False, comprável=False),
+    "Porta": Item(nome="Porta", tipo="Material", slot_equip="slots",vendivel=False, comprável=False),
+    "Baú": Item(nome="Baú", tipo="Material", slot_equip="slots", preco = 40),
+    "Pedra": Item(nome="Pedra", tipo="Material", slot_equip="slots", preco=25),
+    "Bancada": Item(nome="Bancada", tipo="Material", slot_equip="slots", preco=100),
+    "Semente/Trigo": Item(nome="Semente/Trigo", tipo="Material", slot_equip="slots", preco=5),
+    "Semente/Abobora": Item(nome="Semente/Abobora", tipo="Material", slot_equip="slots", preco=10),
+    "Semente/Milho": Item(nome="Semente/Milho", tipo="Material", slot_equip="slots", preco=5),
+    'Muda/Arvore': Item(nome="Muda/Arvore", tipo="Material", slot_equip="slots", preco=10),
+    'Semente/Arbusto': Item(nome="Semente/Arbusto", tipo="Material", slot_equip="slots", preco=5),
+    'Fornalha': Item(nome="Fornalha", tipo="Material", slot_equip="slots", vendivel=False, comprável=False),
     ##Produtors
-    "Trigo": Item(nome="Trigo", tipo="Produto", preco=10),
-    "Milho": Item(nome="Milho", tipo="Produto", preco=25,),
-    "Graveto": Item(nome="Graveto", tipo="Produto"),
-    "Carvão": Item(nome="Carvão", tipo="Produto"),
-    "Ferro": Item(nome="Ferro", tipo="Produto"),
-    "Abobora": Item(nome="Abobora", tipo="Produto", preco=50),
-    "Barra/Ferro": Item(nome="Barra/Ferro", tipo="Produto"),
+    "Trigo": Item(nome="Trigo", tipo="Produto", preco=100),
+    "Milho": Item(nome="Milho", tipo="Produto", preco=100),
+    "Graveto": Item(nome="Graveto", tipo="Produto", preco=2),
+    "Carvão": Item(nome="Carvão", tipo="Produto", preco=250),
+    "Ferro": Item(nome="Ferro", tipo="Produto",preco=500),
+    "Lã": Item(nome="Lã", tipo="Produto",preco=250),
+    "Abobora": Item(nome="Abobora", tipo="Produto", preco=200),
+    "Barra/Ferro": Item(nome="Barra/Ferro", tipo="Produto", preco=2000),
 }
-
 
 class CraftRecipe:
     def __init__(self, nome_item, materiais, quantidade=1):
@@ -76,8 +85,9 @@ class CraftRecipe:
 
 RECEITAS_EQUIPAMENTOS = {
     'Espada': CraftRecipe('Espada',{'Madeira': 5, 'Graveto': 4}),
-    'Pá': CraftRecipe('Pá',{'Madeira': 10, 'Graveto': 5}),
-    'Enchada': CraftRecipe('Enchada',{'Pedra':5 , 'Graveto': 5}),
+    'Vara de Pesca': CraftRecipe('Vara de Pesca',{'Lã': 3, 'Graveto': 4}),
+    'Pá': CraftRecipe('Pá',{'Madeira': 10, 'Graveto': 4}),
+    'Enchada': CraftRecipe('Enchada',{'Pedra':5 , 'Graveto': 4}),
     'Picareta/Madeira': CraftRecipe('Picareta/Madeira',{'Madeira': 5, 'Graveto': 4}),
     'Machado/Madeira': CraftRecipe('Machado/Madeira',{'Madeira': 5, 'Graveto': 4}),
     'Picareta/Pedra': CraftRecipe('Picareta/Pedra',{'Pedra': 5, 'Graveto': 4}),
@@ -90,18 +100,28 @@ RECEITAS_MATERIAIS = {
     'Bau': CraftRecipe('Bau', {'Madeira': 5, 'Pedra': 1}),
     'Porta': CraftRecipe('Porta', {'Madeira': 6}),
     'Chão': CraftRecipe('Chão', {'Madeira': 2}, quantidade=4),
-    'Forja': CraftRecipe('Forja', {'Pedra': 5, 'Carvão': 5}),
+    'Fornalha': CraftRecipe('Forja', {'Pedra': 10, 'Carvão': 5}),
     'Graveto': CraftRecipe('Graveto', {'Madeira': 2}, quantidade=4),
+    'Lã': CraftRecipe('Lã', {'Trigo': 2, "Madeira": 2}),
     'Semente/Trigo': CraftRecipe('Semente/Trigo', {'Trigo':1}, quantidade=3),
     'Semente/Abobora': CraftRecipe('Semente/Abobora', {'Abobora':1}, quantidade=3),
     'Semente/Milho': CraftRecipe('Semente/Milho', {'Milho':1}, quantidade=3),
 }
 
 RECEITAS_CONSUMIVEIS = {
-    'Pão': CraftRecipe('Pão',{'Trigo':3}),
-    'Bolo de Milho': CraftRecipe('Bolo de Milho',{'Milho':5}),
-    'Torta de Abobora': CraftRecipe('Torta de Abobora',{'Trigo':3, 'Abobora':1}),
+    'Pão': CraftRecipe('Pão',{'Trigo':3, 'Carvão':1}),
+    'Bolo de Milho': CraftRecipe('Bolo de Milho',{'Milho':5, 'Carvão':1}),
+    'Torta de Abobora': CraftRecipe('Torta de Abobora',{'Trigo':3, 'Abobora':1, 'Carvão':1}),
+    'Pizza': CraftRecipe('Pizza',{'Trigo':5, 'Queijo': 1, 'Ovo': 2, 'Carvão ': 1}),
+    'Queijo': CraftRecipe('Queijo',{'Leite':5, 'Carvão':1}),
+    'Sopa de Legumes': CraftRecipe('Sopa de Legumes',{'Abobora':1, 'Milho':3, 'Trigo':2, 'Carvão': 1}),
+    'Ovo Frito': CraftRecipe('Ovo Frito',{'Ovo':1, 'Carvão': 1}),
 
+}
+
+RECEITAS_MINERIOS = {
+    "Carvão": CraftRecipe('Carvão',{'Madeira':10}),
+    "Barra/Ferro": CraftRecipe('Barra/Ferro',{'Ferro':10, 'Carvão':5}),
 }
 
 class magias:

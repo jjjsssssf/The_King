@@ -177,15 +177,24 @@ class art_ascii:
        _I    / 
 ============================
 """
-        self.lobo1 = r"""
-         _     ___
-        #_~`--'__ `===-,
-        `.`.     `#.,//
-        ,_\_\     ## #\
-        `__.__    `####\
-             ~~\ ,###'~
-                \##'
-"""
+        self.serafas = r'''
+          /
+     /\   |
+    /  \  |/
+   |    | |>
+   \____/ |
+   ( .. ) |
+   /\__/\ |
+  /\ qp /\|
+ /  |  |  |
+/|  |db| /\`\
+| \ |  | \|_|
+\  \|qp|  |
+ \__/  |  |
+ |/||db|  |
+ |  |  |  |
+'''
+
 
 art = art_ascii()
 
@@ -302,5 +311,5 @@ class dialogos:
         self.aldao_1 = 'Você é um andariolho? isso é estranho pensei que todos os fora da grande cupula aviam morrido'
         self.aldao_2 = 'Você pode plantar coisa usando uma enchada e uma pá para abrir burracos para achar sementes'
         self.aldao_3 = 'Utilize a bancada para fazer tudo oque você quiser'
-        self.aldao_4 = 'Com a derrota do Dragão Suny algumas vilas voltaram o mundo a estranha luz azul trouxe as antigas vilas de novo'
-        self.aldao_5 = 'Você pode ir as vilas por lá tem pessoas que podem te ajudar a se fortaleser'
+        self.aldao_4 = 'Com a derrota do Dragão Suny algumas estruturas apareceram no mundo o senhor dos Céus Serefas será o primeiro'
+        self.aldao_5 = 'Você pode ir as novas construções por lá terá novos bosses'

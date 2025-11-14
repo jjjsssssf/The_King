@@ -1,8 +1,6 @@
 from jogo import *
 from classe_arts import draw_window, term, clear, mini_mapa_
-import random, time, string
-from classe_do_jogador import jogador
-from classe_do_inimigo import inimigo
+import random, time, string, threading
 from maps import *
 from classe_arts import art_ascii, Cores
 from mm import tocar_musica, escolher_e_tocar_musica, parar_musica, tocando_musica
@@ -14,6 +12,29 @@ C = Cores()
 jj = jogador(nome="", hp_max=100, atk=15, niv=1, xp_max=100, defesa=10, gold=0, stm_max=100, intt=10, mn_max=100,d_m=20, art_player=ascii.necro, skin="0",skin_nome='')
 ee = inimigo(nome="", hp_max=0, atk=0, niv=0, xp=0, defesa=0, gold=0, art_ascii="",atk1="",atk2="")
 thread_musica = None
+def tela_de_loading(term, mensagem="Carregando Mapa..."):
+    clear()
+    draw_window(term, x=25, y=10, width=40, height=10, title="Aguarde")
+    with term.location(30, 14):
+        print(mensagem)
+    while not getattr(tela_de_loading, "terminar", False):
+        time.sleep(0.1)
+
+def gerar_mapa_assincrono(term, largura, altura, seed):
+    resultado = {}
+
+    def gerar():
+        resultado["mapa"] = mapa_procedural(nome="Mundo", largura=largura, altura=altura, seed=seed)
+        tela_de_loading.terminar = True 
+
+    thread = threading.Thread(target=gerar)
+    thread.start()
+
+    tela_de_loading.terminar = False
+    tela_de_loading(term)  # mostra a tela fixa
+    thread.join()
+
+    return resultado["mapa"]
 
 def menu_inicial(x_l, y_l):
     NOME_DO_ARQUIVO = "Title_.mp3"
@@ -48,21 +69,20 @@ def menu_inicial(x_l, y_l):
                 skin=cor_final,     
                 skin_nome=skin_nome 
             )
-            seed_random = random.randint(1, 50)
-            x_random = random.randint(1, 100)
-            y_random = random.randint(1, 30)
-            jj.seed = seed_random
             jj.dificuldade_atual = dificuldade_key
             limpar_todos_os_saves()
             limpar_todos_os_player()
             jj.inventario.append(TODOS_OS_ITENS['Bancada'])
-            lista_de_comandos()
-            config = mapa_procedural(nome="Mundo", largura=250, altura=125, seed=jj.seed)
+            seed_random = random.randint(1, 50)
+            x_random = random.randint(1, 800)
+            y_random = random.randint(1, 400)
+            jj.seed = seed_random
+            config = gerar_mapa_assincrono(term, largura=800, altura=400, seed=jj.seed)
             mini_mapa(
                 x_l=0, y_l=0,
                 player=jj,
                 mapas_=config["mapa"],
-                camera_w=35, camera_h=15,
+                camera_w=50, camera_h=25,
                 x_p=x_random, y_p=y_random,
                 menager="",
                 cores_custom=config["cores"],
@@ -211,12 +231,5 @@ def escolher_dificudade(x_l, y_l, menu_art):
             return 'Dificil'
         else:
             mostrar_mensagem(x_l+26, y_l+num_linhas+6, "Opção inválida. Use 1, 2 ou 3.")
-
-def lista_de_comandos():
-    clear()
-    print('[1]Abrir o inventario: Digite i\n[2]Abrir as melhorias Digite: Digite up\n[3]Quebrar itens: Digite r\n[4]Colocar itens: equipe um bloco e digite usar[num] por exemplo usar 1\n[5]Para intaragir com objetos: Digite x\n[6]Para cavar um buraco ou arar a terra: Digite e\n[7]Para entrar em uma caverna: cave um buraco depois Digite x')
-    print("[8]Para sair das caverna: Digite jump\n[9]Para ir ao proximo andar das caverna: faça um buraco\n[10]Para sair: Digite sair\n[11]Para salvar: Digite save\n[12]Você inicia com uma Bancada para a usar coloque ela no chão depois interaja com ela e veja tudo\n[13]Sistema de movimentação: WASD com ordem numerica ou seja w 10")
-    print("[16]Para plantar equipe a semente are a terra depois utilize o comando usar [num]\n[15]Para ver os comando novamente: Digite help")
-    input("Pressione Enter")
 
 menu_inicial(x_l=0, y_l=0)

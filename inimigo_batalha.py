@@ -15,7 +15,7 @@ def esqueleto(player_b, art):
     atk = int(5 * multiplicador_dif * player_b.niv)
     defesa = int(3 * multiplicador_dif * player_b.niv)
     xp = int(35 * player_b.niv // 2)
-    gold = int(50 * player_b.niv )
+    gold = int(0 * player_b.niv )
     niv = int(1 * multiplicador_dif * player_b.niv)
     art = art.esqueleto
     return{
@@ -44,7 +44,7 @@ def zumbi(player_b, art):
     defesa = int(4 * multiplicador_dif * player_b.niv)
     niv = int(1 * multiplicador_dif * player_b.niv)
     xp = int(40 * player_b.niv // 2)
-    gold = int(50 * player_b.niv)
+    gold = int(0 * player_b.niv)
     art = art.zombie
     return{
         'nome': nome,
@@ -72,7 +72,7 @@ def sun(player_b, art):
     defesa = int(5 * multiplicador_dif * player_b.niv)
     niv = int(1 * multiplicador_dif * player_b.niv)
     xp = int(50 * player_b.niv // 2)
-    gold = int(70 * player_b.niv)
+    gold = int(0 * player_b.niv)
     art = art.suny
     return{
         'nome': nome,
@@ -87,5 +87,32 @@ def sun(player_b, art):
         'art': art
     }
 
+def sers(player_b, art):
+    try:
+        multiplicador_dif = player_b.dificuldade[player_b.dificuldade_atual]["niv"]
+    except KeyError:
+        multiplicador_dif = 1
+    nome = 'Serafas'
+    atk_1 = 'Espiritos'
+    atk_2 = 'Maldição'
+    hp = int(50 * multiplicador_dif * player_b.niv)
+    atk = int(20 * multiplicador_dif * player_b.niv)
+    defesa = int(2 * multiplicador_dif * player_b.niv)
+    niv = int(1 * multiplicador_dif * player_b.niv)
+    xp = int(50 * player_b.niv // 2)
+    gold = int(0 * player_b.niv)
+    art = art.serafas
+    return{
+        'nome': nome,
+        'atk_1': atk_1,
+        'atk_2': atk_2,
+        'hp': hp,
+        'atk': atk,
+        'defesa': defesa,
+        'xp': xp,
+        'niv': niv,
+        'gold':gold,
+        'art': art
+    }
 
 

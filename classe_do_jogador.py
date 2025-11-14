@@ -37,7 +37,11 @@ class jogador:
         self.x_mapa = 0
         self.y_mapa = 0
         self.seed = 0
-        self.boss = {'Suny': False}
+        self.direcao = "baixo"
+        self.seed_caverna = 0
+        self.boss = {
+        'Suny': False,
+        'Serefas': False}
         self.dificuldade = {
             "Facil": {"dif": None, "niv": 0.5},
             "Normal": {"dif": None, "niv": 1},
@@ -59,6 +63,11 @@ class jogador:
                 'slot_2': None,
                 'slot_3': None,
                 'slot_4': None,
+                'slot_5': None,
+                'slot_6': None,
+                'slot_7': None,
+                'slot_8': None,
+                'slot_9': None,
             }
         }
         
@@ -105,24 +114,73 @@ class jogador:
         with term.location(x=x_l, y=y_l+2):
             print(f"MG[{barra_m}] {porcentagem_m}%")
         with term.location(x=x_l, y=y_l+3):
-            print(f"ATK: [{term.bold_red(str(self.atk))}] - DEF: [{term.bold_blue(str(self.defesa))}]")
+            print(f"ATK: [{term.bold_red(str(self.atk))}]")
         with term.location(x=x_l, y=y_l+4):
-            print(f"MGA: [{term.bold_magenta(str(self.dano_magico))}] - INT: [{term.bold_gray(str(self.intt))}]")
+            print(f"DEF: [{term.bold_blue(str(self.defesa))}]")
         with term.location(x=x_l, y=y_l+5):
-            print(f"Gold: [{term.bold_yellow(str(self.gold))}] - Nivel: [{term.bold_green(str(self.niv))}]")
+            print(f"MGA: [{term.bold_magenta(str(self.dano_magico))}]")
         with term.location(x=x_l, y=y_l+6):
-            print(f"X: [{term.bold_blue(str(self.x_mapa))}] - Y: [{term.bold_red(str(self.y_mapa))}]")
+            print(f"INT: [{term.bold_gray(str(self.intt))}]")
         with term.location(x=x_l, y=y_l+7):
-            print(f"Dificudade: [{self.dificuldade_atual}] Seed: [{self.seed}]")
-        y_mat = y_l + 8
-        with term.location(x=x_l, y=y_mat):
-            print(term.bold_white("Materiais Equipados:"))
-        for i in range(1, 5):
-            slot_nome = f"slot_{i}"
-            item_slot = self.matariais['slots'][slot_nome]
-            nome = item_slot.nome if item_slot else "Vazio"
-            with term.location(x=x_l, y=y_mat + i):
-                print(f"[{i}] {nome}")
+            print(f"Gold: [{term.bold_yellow(str(self.gold))}]")
+        with term.location(x=x_l, y=y_l+8):
+            print(f"Nivel: [{term.bold_green(str(self.niv))}]")
+        with term.location(x=x_l, y=y_l+9):
+            print(f"X: [{term.bold_blue(str(self.x_mapa))}] - Y: [{term.bold_red(str(self.y_mapa))}]")
+        with term.location(x=x_l, y=y_l+10):
+            print(f"Direção: [{term.bold_cyan(str(self.direcao))}]")
+
+    def menu_status(self, x, y, largura=40):
+        pagina = 0
+        paginas = [
+            "Itens Equipados",
+            "Materiais e Equipamentos"
+        ]
+        slots_legiveis = {
+            "m_pri": "Primeira Mão",
+            "m_seg": "Segunda Mão",
+            "c_cap": "Cabeça",
+            "p_pet": "Peito"
+        }   
+
+        while True:
+            clear_region_a(x=x, start_y=y, end_y=y, width=largura)
+            
+            if pagina == 0:
+                text_content = "Equipamentos:\n"
+                for slot_chave, slot_nome in slots_legiveis.items():
+                    item_slot = self.equipa.get(slot_chave)
+                    nome_item = item_slot.nome if item_slot else "Vazio"
+                    text_content += f"{slot_nome}: {nome_item}\n"
+
+            elif pagina == 1:
+                text_content = "Materiais Equipados:\n"
+                for i in range(1, 10):
+                    slot_nome = f"slot_{i}"
+                    item_slot = self.matariais['slots'][slot_nome]
+                    nome = item_slot.nome if item_slot else "Vazio"
+                    text_content += f"[{i}] {nome}\n"
+
+            total_paginas = len(paginas)
+            text_content += f"\nPágina {pagina + 1}/{total_paginas}\nUse '<' e '>' ou digite 'sair'."
+
+            draw_window(term, x=x, y=y, width=largura, height=len(text_content.split("\n")) + 4,
+                        title=f"Status - {paginas[pagina]}", text_content=text_content)
+
+            with term.location(x=x + 1, y=y + len(text_content.split("\n")) + 2):
+                escolha = input("> ").strip().lower()
+
+            if escolha == "sair":
+                clear_region_a(x=x, start_y=y, end_y=y, width=largura)
+                break
+            elif escolha == ">" and pagina < total_paginas - 1:
+                pagina += 1
+            elif escolha == "<" and pagina > 0:
+                pagina -= 1
+            else:
+                mensagem = "Entrada inválida."
+                draw_window(term, x=x, y=y + len(text_content.split("\n")) + 4, width=largura, height=3, text_content=mensagem)
+                time.sleep(1)
 
     def status_art(self ,x_janela, y_janela):
         art_player = self.art_player
@@ -182,7 +240,8 @@ MG: [{self.mana_max}]
 MA: [{self.dano_magico}]
 INT: [{self.intt}]
 
-Digite Nome e Quantidade"""
+Digite Nome e Quantidade
+            """
 
             draw_window(term, x=x, y=y, width=werd, height=herd, text_content=mensagem)
 
@@ -355,7 +414,8 @@ Digite Nome e Quantidade"""
                 text_content =f"""Você chamou {magia.nome}
 ele ira te ajudar na batalhas
 ATK: [{magia.bonus_atk}]
-DEF: [{magia.bonus_def}]"""
+DEF: [{magia.bonus_def}]
+                """
                 herd = 6
                 sucesso = True
         draw_window(term, x_janela, y_janela, width=35, height=herd, text_content=text_content)
@@ -466,62 +526,6 @@ DEF: [{magia.bonus_def}]"""
                 draw_window(term, x, y + altura_janela, width=werd, height=3, text_content=mensagem)
                 time.sleep(2)
 
-    def gerenciar_material(self, item, x_janela, y_janela, werd):
-        altura_opcoes = 6
-        altura_feedback = 4
-        clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd) 
-        
-        text_content = "O que deseja fazer com o material?\n[1]Equipar\n[2]Desequipar"
-        draw_window(term, x_janela, y_janela, width=werd, height=altura_opcoes, title=item.nome, text_content=text_content)
-        
-        with term.location(x_janela + 2, y_janela + altura_opcoes - 2):
-            print(" " * (werd - 4), end='\r')
-        with term.location(x_janela + 2, y_janela + altura_opcoes - 2):
-            esc = input(">")
-
-        feedback = ""
-        alteracao_efetuada = False
-
-        # EQUIPAR MATERIAL
-        if esc == "1":
-            slots = self.matariais['slots']
-            # Verifica se já está equipado
-            if any(slot and slot.nome == item.nome for slot in slots.values()):
-                feedback = f"{item.nome} já está equipado."
-            else:
-                # Encontra primeiro slot livre
-                slot_livre = next((k for k, v in slots.items() if v is None), None)
-                if slot_livre:
-                    slots[slot_livre] = item
-                    feedback = f"{item.nome} foi equipado no {slot_livre}."
-                    alteracao_efetuada = True
-                else:
-                    feedback = "Todos os slots de materiais estão ocupados."
-
-        # DESEQUIPAR MATERIAL
-        elif esc == "2":
-            slots = self.matariais['slots']
-            encontrado = False
-            for k, v in slots.items():
-                if v and v.nome == item.nome:
-                    slots[k] = None
-                    feedback = f"{item.nome} foi removido de {k}."
-                    alteracao_efetuada = True
-                    encontrado = True
-                    break
-            if not encontrado:
-                feedback = f"{item.nome} não está equipado."
-
-        else:
-            feedback = "Opção inválida."
-
-        clear_region_a(x_janela, y_janela + altura_opcoes, y_janela + altura_opcoes + altura_feedback, werd)
-        draw_window(term, x_janela, y_janela + altura_opcoes, width=werd, height=altura_feedback, text_content=feedback)
-        time.sleep(2)
-        clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd)
-        
-        return alteracao_efetuada
-
     def usar_produtos(self, item, x_janela, y_janela, werd):
         altura_mensagem = 3
         clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd)
@@ -588,63 +592,78 @@ DEF: [{magia.bonus_def}]"""
         clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd)
         return sucesso
 
-    def gerenciar_equipavel(self, item, x_janela, y_janela, werd):
-        """Retorna True se o equipamento foi equipado/desequipado, False caso contrário."""
-        altura_opcoes = 6
+    def gerenciar_material(self, item, x_janela, y_janela, werd):
         altura_feedback = 4
-        clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd) 
-        
-        text_content = "O que deseja fazer com o item?\n[1]Equipar\n[2]Desequipar"
-        draw_window(term, x_janela, y_janela, width=werd, height=altura_opcoes, title=item.nome, text_content=text_content)
-        
-        with term.location(x_janela + 2, y_janela + altura_opcoes - 2):
-            print(" " * (werd - 4), end='\r')
-        with term.location(x_janela + 2, y_janela + altura_opcoes - 2):
-            esc = input(">")
-        
+        clear_region_a(x_janela, y_janela, y_janela + altura_feedback, werd)
+        slots = self.matariais['slots']
         alteracao_efetuada = False
-        feedback = ""
-        
-        if esc == "1":
-            if not self.equipa.get(item.slot_equip) or self.equipa[item.slot_equip] is None:
-                self.equipa[item.slot_equip] = item
-                self.atk += item.bonus_atk
-                self.defesa += item.bonus_def
-                self.hp_max += item.bonus_hp_max
-                self.dano_magico += item.bonus_atk_mana
-                feedback = f"Você equipou {item.nome}."
-                alteracao_efetuada = True
-            elif self.equipa[item.slot_equip].nome == item.nome:
-                feedback = "Este item já está equipado."
-            else:
-                feedback = f"Já tem o item {self.equipa[item.slot_equip].nome} equipado nesse slot!"
-                
-        elif esc == "2":
-            # Desequipa SE o item_escolhido (que é a REFERÊNCIA do tipo de item) for o que está equipado
-            if self.equipa.get(item.slot_equip) and self.equipa[item.slot_equip].nome == item.nome:
-                # Pega o objeto que está equipado para desequipar
-                item_equipado = self.equipa[item.slot_equip]
-                
-                self.equipa[item.slot_equip] = None
-                self.atk -= item_equipado.bonus_atk
-                self.hp_max -= item.bonus_hp_max
-                self.defesa -= item_equipado.bonus_def
-                self.dano_magico -= item_equipado.bonus_atk_mana
-                feedback = f"Você desequipou {item_equipado.nome}."
-                alteracao_efetuada = True
-            else:
-                feedback = "Este item não está equipado ou você escolheu outro tipo."
-                
-        else:
-            feedback = "Opção inválida."
 
-        # Limpa a área de feedback antes de desenhar
-        clear_region_a(x_janela, y_janela + altura_opcoes, y_janela + altura_opcoes + altura_feedback, werd)
-        draw_window(term, x_janela, y_janela + altura_opcoes, width=werd, height=altura_feedback, text_content=feedback)
-        time.sleep(2)
-        # Limpa toda a região de gerenciamento após o feedback
-        clear_region_a(x_janela, y_janela, y_janela + altura_opcoes + altura_feedback, werd) 
-        
+        if any(v and v.nome == item.nome for v in slots.values()):
+            for k, v in slots.items():
+                if v and v.nome == item.nome:
+                    slots[k] = None
+                    feedback = f"{item.nome} foi removido de {k}."
+                    alteracao_efetuada = True
+                    break
+        else:
+            slot_livre = next((k for k, v in slots.items() if v is None), None)
+            if slot_livre:
+                slots[slot_livre] = item
+                feedback = f"{item.nome} foi equipado no {slot_livre}."
+                alteracao_efetuada = True
+            else:
+                feedback = "Todos os slots de materiais estão ocupados."
+
+        draw_window(term, x_janela, y_janela, width=werd, height=altura_feedback, text_content=feedback)
+        time.sleep(1.8)
+        clear_region_a(x_janela, y_janela, y_janela + altura_feedback, werd)
+        return alteracao_efetuada
+
+    def gerenciar_equipavel(self, item, x_janela, y_janela, werd):
+        altura_feedback = 4
+        clear_region_a(x_janela, y_janela, y_janela + altura_feedback, werd)
+
+        slot = item.slot_equip
+        alteracao_efetuada = False
+
+        if not self.equipa.get(slot):  # Nada equipado — equipa direto
+            self.equipa[slot] = item
+            self.atk += item.bonus_atk
+            self.defesa += item.bonus_def
+            self.hp_max += item.bonus_hp_max
+            self.dano_magico += item.bonus_atk_mana
+            feedback = f"Você equipou {item.nome}."
+            alteracao_efetuada = True
+
+        elif self.equipa[slot].nome == item.nome:
+            equipado = self.equipa[slot]
+            self.equipa[slot] = None
+            self.atk -= equipado.bonus_atk
+            self.defesa -= equipado.bonus_def
+            self.hp_max -= equipado.bonus_hp_max
+            self.dano_magico -= equipado.bonus_atk_mana
+            feedback = f"Você desequipou {equipado.nome}."
+            alteracao_efetuada = True
+
+        else:
+            equipado = self.equipa[slot]
+            self.atk -= equipado.bonus_atk
+            self.defesa -= equipado.bonus_def
+            self.hp_max -= equipado.bonus_hp_max
+            self.dano_magico -= equipado.bonus_atk_mana
+
+            self.equipa[slot] = item
+            self.atk += item.bonus_atk
+            self.defesa += item.bonus_def
+            self.hp_max += item.bonus_hp_max
+            self.dano_magico += item.bonus_atk_mana
+            feedback = f"{equipado.nome} foi substituído por {item.nome}."
+            alteracao_efetuada = True
+
+        draw_window(term, x_janela, y_janela, width=werd, height=altura_feedback, text_content=feedback)
+        time.sleep(1.8)
+        clear_region_a(x_janela, y_janela, y_janela + altura_feedback, werd)
+
         return alteracao_efetuada
 
     def gerenciar_loja(self, x, y, largura):
@@ -663,7 +682,7 @@ DEF: [{magia.bonus_def}]"""
             if escolha == "1":
                 self.comprar_itens(x+largura, y, largura)
             elif escolha == "2":
-                self.vender_itens(x+largura, y, largura)
+                self.vender_itens(x+y, y, largura+25)
             elif escolha == "3":
                 return
             else:
@@ -672,20 +691,23 @@ DEF: [{magia.bonus_def}]"""
     def comprar_itens(self, x, y, largura):
         while True:
             text_content = f"Gold: [{term.bold_yellow(str(self.gold))}]\n"
-            text_content += "[1] Itens Equipáveis\n"
-            text_content += "[2] Itens Consumíveis\n"
-            text_content += "[3] Voltar"
+            text_content += "[1] Itens Consumíveis\n"
+            text_content += "[2] Itens Produto\n"
+            text_content += "[3] Itens Material\n"
+            text_content += "[4] Voltar"
             
-            draw_window(term, x, y, width=largura, height=7, title="Comprar", text_content=text_content)
+            draw_window(term, x, y, width=largura, height=9, title="Comprar", text_content=text_content)
 
-            with term.location(x + 2, y + 5):
+            with term.location(x + 2, y + 6):
                 escolha = input("> ")
             
             if escolha == "1":
-                self.exibir_itens_por_tipo("Equipavel", x-largura, y + 7, largura)
-            elif escolha == "2":
                 self.exibir_itens_por_tipo("Consumivel", x-largura, y + 7, largura)
+            elif escolha == "2":
+                self.exibir_itens_por_tipo("Produto", x-largura, y + 7, largura)
             elif escolha == "3":
+                self.exibir_itens_por_tipo("Material", x-largura, y + 7, largura)
+            elif escolha == '4':
                 return
             else:
                 pass
@@ -915,10 +937,134 @@ DEF: [{magia.bonus_def}]"""
             time.sleep(2)
             continue
 
+    def forja(self, x, y, werd, herd=None):
+        receitas = escolher_tipo_receita_for(0, 0, 35, 8)
+        if receitas is None:
+            return None
+
+        receitas_lista = list(receitas.items())
+        receitas_por_pagina = 5
+        pagina = 0
+        total_paginas = (len(receitas_lista) - 1) // receitas_por_pagina + 1
+
+        while True:
+            clear()
+            inicio = pagina * receitas_por_pagina
+            fim = inicio + receitas_por_pagina
+            receitas_visiveis = receitas_lista[inicio:fim]
+
+            # Montar menu
+            linhas = [""]
+            for i, (nome_item, receita) in enumerate(receitas_visiveis, start=1):
+                requisitos = ", ".join(
+                    f"{mat} x{qtd}" for mat, qtd in receita.materiais.items() if mat != "Quantidade"
+                )
+                linhas.append(f"[{i}] {nome_item}")
+                linhas.append(f"   {requisitos}")
+
+            linhas.append(f"\nPágina {pagina + 1}/{total_paginas}")
+            linhas.append("Digite: '<' ou '>' para navegar páginas")
+            linhas.append("Digite 'sair' para voltar")
+            linhas.append("OU digite: número [quantidade] (ex: 2 4)")
+
+            text_content = "\n".join(linhas)
+            linhas_contadas = len(linhas)
+            herd_auto = max(10, min(linhas_contadas + 4, 25))
+            altura_janela = herd_auto if herd is None else herd_auto
+
+            draw_window(term, x=x, y=y, width=werd, height=altura_janela + 1,
+                        title="Crafting", text_content=text_content)
+
+            with term.location(x + 2, y + altura_janela - 1):
+                entrada = input("> ").strip().lower()
+
+            if entrada == "sair":
+                return None
+
+            if entrada == ">":
+                if pagina < total_paginas - 1:
+                    pagina += 1
+                else:
+                    draw_window(term, x, y + altura_janela, width=werd, height=3,
+                                text_content="Você já está na última página.")
+                    time.sleep(1.2)
+                continue
+
+            if entrada == "<":
+                if pagina > 0:
+                    pagina -= 1
+                else:
+                    draw_window(term, x, y + altura_janela, width=werd, height=3,
+                                text_content="Você já está na primeira página.")
+                    time.sleep(1.2)
+                continue
+
+            partes = entrada.split()
+            if not partes or not partes[0].isdigit():
+                draw_window(term, x, y + altura_janela, width=werd, height=3,
+                            text_content="Entrada inválida.")
+                time.sleep(1.2)
+                continue
+
+            indice_local = int(partes[0]) - 1
+            qtd_fazer = int(partes[1]) if len(partes) > 1 and partes[1].isdigit() else 1
+
+            if indice_local < 0 or indice_local >= len(receitas_visiveis):
+                draw_window(term, x, y + altura_janela, width=werd, height=3,
+                            text_content="Número inválido nesta página.")
+                time.sleep(1.2)
+                continue
+
+            nome_item, receita = receitas_visiveis[indice_local]
+            materiais = receita.materiais
+            quantidade_por_receita = getattr(receita, "quantidade", 1)
+            total_produzir = qtd_fazer * quantidade_por_receita
+
+            faltando = []
+            for mat, qtd in materiais.items():
+                if mat == "Quantidade":
+                    continue
+                count = sum(1 for i in self.inventario if i.nome == mat)
+                if count < qtd * qtd_fazer:
+                    faltando.append(f"{mat} ({count}/{qtd * qtd_fazer})")
+
+            if faltando:
+                mensagem = "Materiais insuficientes:\n" + "\n".join(faltando)
+                draw_window(term, x, y + altura_janela, width=werd,
+                            height=len(faltando) + 5, text_content=mensagem)
+                time.sleep(2)
+                continue
+
+            for mat, qtd in materiais.items():
+                if mat == "Quantidade":
+                    continue
+                removidos = 0
+                for item in list(self.inventario):
+                    if item.nome == mat:
+                        self.inventario.remove(item)
+                        removidos += 1
+                        if removidos >= qtd * qtd_fazer:
+                            break
+
+            if nome_item in TODOS_OS_ITENS:
+                novo_item = TODOS_OS_ITENS[nome_item]
+                for _ in range(total_produzir):
+                    self.inventario.append(novo_item)
+                mensagem = f"Você fabricou {total_produzir}x {nome_item}!"
+            else:
+                mensagem = f"Item '{nome_item}' não encontrado em TODOS_OS_ITENS."
+                novo_item = None
+
+            draw_window(term, x, y + altura_janela, width=werd, height=4,
+                        text_content=mensagem)
+            time.sleep(2)
+            continue
+
+
 def escolher_tipo_receita(x, y, largura, altura):
     while True:
         clear()
-        menu = '''Escolha o Tipo de item que você quer fazer\n[1] Equipamentos\n[2] Materiais\n[3] Consumiveis'''
+        menu = '''Escolha o Tipo de item que você quer fazer\n[1] Equipamentos\n[2] Materiais'''
         draw_window(term, x=x, y=y, width = largura, height = altura, text_content=menu)
         with term.location(x=x+1, y=y+5):
             escolha = input("> ").strip()
@@ -926,7 +1072,23 @@ def escolher_tipo_receita(x, y, largura, altura):
             return RECEITAS_EQUIPAMENTOS
         elif escolha == "2":
             return RECEITAS_MATERIAIS
-        elif escolha == "3":
+        elif escolha.lower() == "sair":
+            return None
+        else:
+            with term.location(x=x+1, y=y+5):
+                print("Escolha inválida, tente novamente.")
+
+
+def escolher_tipo_receita_for(x, y, largura, altura):
+    while True:
+        clear()
+        menu = '''Escolha o Tipo de item que você quer fazer\n[1] Consumiveis\n[2] Minerios'''
+        draw_window(term, x=x, y=y, width = largura, height = altura, text_content=menu)
+        with term.location(x=x+1, y=y+5):
+            escolha = input("> ").strip()
+        if escolha == "2":
+            return RECEITAS_MINERIOS
+        elif escolha == "1":
             return RECEITAS_CONSUMIVEIS
         elif escolha.lower() == "sair":
             return None

@@ -47,9 +47,17 @@ CASAS = [
     '########............',
     '#:::::B#..!!!!!!!!!!',
     '#::&:::#..!........!',
-    r'#::::::#..\........!',
-    '#\\#####..!!!!!!!!!!',
+    '#::::::#...........!',
+    r'#\\#####..!!!!!!!!!!',
     ],
+    [
+    '#########',
+    '#::V::::#',
+    '#:::::::#',
+    '#:::::::#',
+    '#:::::::#',
+    r'##\\######'
+    ]
 ]
 IGREJAS = [
     [
@@ -83,12 +91,35 @@ FAZENDAD = [
     ]
 
 ]
+BOSS = [
+    [
+    '....+....',
+    '...O:O...',
+    '..O:::O..',
+    '..O:@:O..',
+    '..O:::O..',
+    '..O:::O..',
+    '.O:::::O.',
+    '.O:::::O.',
+    '.O:::::O.',
+    '.OOO/OOO.'
+    ],
+    [
+        '...+...',
+        '...#...',
+        '..#:#..',
+        '.#:::#.',
+        '#::P::#',
+        '#:::::#',
+        '#:::::#',
+        r'###\### ',
+    ]
+]
 
 
 def colocar_construcao(mapa, estrutura, pos_x, pos_y):
     mapa_altura = len(mapa)
     mapa_largura = len(mapa[0])
-
     for y, linha in enumerate(estrutura):
         for x, ch in enumerate(linha):
             mapa_y = pos_y + y
@@ -98,7 +129,6 @@ def colocar_construcao(mapa, estrutura, pos_x, pos_y):
 
 def colocar_par_fazenda(mapa, item1, item2, distancia, pos_x, pos_y):
     colocar_construcao(mapa, item1, pos_x, pos_y)
-    
     largura_item1 = len(item1[0])
     nova_pos_x = pos_x + largura_item1 + distancia
     colocar_construcao(mapa, item2, nova_pos_x, pos_y)
@@ -128,39 +158,33 @@ def gerar_mapa_procedural_unido(largura, altura, seed=None):
         return temp_matriz
 
     noise = suavizar(noise, vezes=3)
-
     total = largura * altura
 
-    qtd_chao = int(total * 0.70)
     qtd_agua = int(total * 0.05)
     qtd_pedras = int(total * 0.1)
     qtd_carvao = int(total * 0.02)
-    qtd_construcoes = int
-    qtd_igrejas = int
-    qtd_fazendas = int
 
     noise_flat = [(noise[y][x], x, y) for y in range(altura) for x in range(largura)]
     noise_flat.sort(key=lambda t: t[0])
 
     mapa = [['.'] * largura for _ in range(altura)]
 
-    player_spawn_x = largura // 2
-    player_spawn_y = altura // 2
+    player_spawn_x = player_b.x_mapa
+    player_spawn_y = player_b.y_mapa
     zona_segura_x = 10
     zona_segura_y = 5
 
+    todas_construcoes = []
+
     idx_atual = 0
-    #agua
     qtd_a_preencher = min(qtd_agua, len(noise_flat) - idx_atual)
     for i in range(qtd_a_preencher):
         _, x, y = noise_flat[idx_atual + i]
         if abs(x - player_spawn_x) < zona_segura_x and abs(y - player_spawn_y) < zona_segura_y:
             continue
-
         mapa[y][x] = '~'
     idx_atual += qtd_a_preencher
 
-    #arvorea
     candidatos_arvore = noise_flat[-qtd_pedras:]
     restante_para_embaralhar = noise_flat[idx_atual : -qtd_pedras if qtd_pedras > 0 else None]
     random.shuffle(restante_para_embaralhar)
@@ -170,133 +194,80 @@ def gerar_mapa_procedural_unido(largura, altura, seed=None):
         mapa[y][x] = '♣'
 
     candidatos_idx = 0
-    #arbusto
     qtd_total_arbusto = min(qtd_carvao, len(restante_para_embaralhar) - candidatos_idx)
     for _ in range(qtd_total_arbusto):
         _, x, y = restante_para_embaralhar[candidatos_idx]
         candidatos_idx += 1
-
         if abs(x - player_spawn_x) < zona_segura_x and abs(y - player_spawn_y) < zona_segura_y:
             continue
-
         mapa[y][x] = '♠'
 
-    #Estruturas
-    if total <= 31250:
-        qtd_construcoes = 10
-        casas_colocadas = []
-        for _ in range(qtd_construcoes):
-            casa = random.choice(CASAS)
-            altura_casa = len(casa)
-            largura_casa = len(casa[0])
+    def longe_de_todas_construcoes(x, y, distancia_x=20, distancia_y=10):
+        for (cx, cy) in todas_construcoes:
+            if abs(x - cx) < distancia_x and abs(y - cy) < distancia_y:
+                return False
+        return True
 
-            tentativas = 0
-            max_tentativas = 100  
+    #Casas
+    qtd_construcoes = int(total * 0.0003)
+    for _ in range(qtd_construcoes):
+        casa = random.choice(CASAS)
+        alt_casa = len(casa)
+        lar_casa = len(casa[0])
 
-            while tentativas < max_tentativas:
-                x = random.randint(0, largura - largura_casa - 1)
-                y = random.randint(0, altura - altura_casa - 1)
-                tentativas += 1
+        for _ in range(100):
+            x = random.randint(0, largura - lar_casa - 1)
+            y = random.randint(0, altura - alt_casa - 1)
 
-                if abs(x - player_spawn_x) < zona_segura_x and abs(y - player_spawn_y) < zona_segura_y:
-                    continue
+            if abs(x - player_spawn_x) < zona_segura_x and abs(y - player_spawn_y) < zona_segura_y:
+                continue
+            if not longe_de_todas_construcoes(x, y):
+                continue
 
-                muito_perto = False
-                for (cx, cy) in casas_colocadas:
-                    if abs(x - cx) < 20 and abs(y - cy) < 10:
-                        muito_perto = True
-                        break
+            colocar_construcao(mapa, casa, x, y)
+            todas_construcoes.append((x, y))
+            break
 
-                if not muito_perto:
-                    colocar_construcao(mapa, casa, x, y)
-                    casas_colocadas.append((x, y))
-                    break
+    #Igrejas
+    qtd_igrejas = int(total * 0.0001)
+    for _ in range(qtd_igrejas):
+        igreja = random.choice(IGREJAS)
+        alt = len(igreja)
+        lar = len(igreja[0])
 
-    if total <= 31250:
-        igrejas_colocadas = []
-        qtd_igrejas = random.randint(1, 3)
-        for _ in range(qtd_igrejas):
-            igrejas = random.choice(IGREJAS)
-            altura_igrejas = len(igrejas)
-            largura_igrejas = len(igrejas[0])
+        for _ in range(100):
+            x = random.randint(0, largura - lar - 1)
+            y = random.randint(0, altura - alt - 1)
 
-            tentativas = 0
-            max_tentativas = 100  
+            if abs(x - player_spawn_x) < zona_segura_x and abs(y - player_spawn_y) < zona_segura_y:
+                continue
+            if not longe_de_todas_construcoes(x, y):
+                continue
 
-            while tentativas < max_tentativas:
-                x = random.randint(0, largura - largura_igrejas - 1)
-                y = random.randint(0, altura - altura_igrejas - 1)
-                tentativas += 1
+            colocar_construcao(mapa, igreja, x, y)
+            todas_construcoes.append((x, y))
+            break
 
-                if abs(x - player_spawn_x) < zona_segura_x and abs(y - player_spawn_y) < zona_segura_y:
-                    continue
+    #Fazendas
+    qtd_fazendas = int(total * 0.0003)
+    for _ in range(qtd_fazendas):
+        item1 = FAZENDAD[0]
+        item2 = FAZENDAD[1]
+        alt = max(len(item1), len(item2))
+        lar = len(item1[0]) + len(item2[0]) + 4
 
-                muito_perto = False
-                for (cx, cy) in igrejas_colocadas:
-                    if abs(x - cx) < 20 and abs(y - cy) < 10:
-                        muito_perto = True
-                        break
+        for _ in range(100):
+            x = random.randint(0, largura - lar - 1)
+            y = random.randint(0, altura - alt - 1)
 
-                if not muito_perto:
-                    colocar_construcao(mapa, igrejas, x, y)
-                    casas_colocadas.append((x, y))
-                    break
-    
-    if total <= 31250:
-        qtd_fazendas = 5
-        fazendas_colocada = []
-        for _ in range(qtd_fazendas):
-            casa_idx = random.randint(0, len(FAZENDAD)-1)
-            
-            if casa_idx in [0, 1]:
-                item1 = FAZENDAD[0]
-                item2 = FAZENDAD[1]
-                tentativas = 0
-                max_tentativas = 100
-                while tentativas < max_tentativas:
-                    x = random.randint(0, largura - len(item1[0]) - len(item2[0]) - 4)
-                    y = random.randint(0, altura - max(len(item1), len(item2)))
-                    tentativas += 1
+            if abs(x - player_spawn_x) < zona_segura_x and abs(y - player_spawn_y) < zona_segura_y:
+                continue
+            if not longe_de_todas_construcoes(x, y, 30, 20):
+                continue
 
-                    if abs(x - player_spawn_x) < zona_segura_x and abs(y - player_spawn_y) < zona_segura_y:
-                        continue
-
-                    muito_perto = False
-                    for (cx, cy) in fazendas_colocada:
-                        if abs(x - cx) < 20 and abs(y - cy) < 10:
-                            muito_perto = True
-                            break
-
-                    if not muito_perto:
-                        colocar_par_fazenda(mapa, item1, item2, 4, x, y)
-                        fazendas_colocada.append((x, y))
-                        break
-            else:
-                # Casas normais
-                fazenda = FAZENDAD[fazenda_idx]
-                altura_fazenda = len(fazenda)
-                largura_fazenda = len(fazenda[0])
-                tentativas = 0
-                max_tentativas = 100
-                while tentativas < max_tentativas:
-                    x = random.randint(0, largura - largura_fazenda - 1)
-                    y = random.randint(0, altura - altura_fazenda - 1)
-                    tentativas += 1
-
-                    if abs(x - player_spawn_x) < zona_segura_x and abs(y - player_spawn_y) < zona_segura_y:
-                        continue
-
-                    muito_perto = False
-                    for (cx, cy) in fazendas_colocada:
-                        if abs(x - cx) < 20 and abs(y - cy) < 10:
-                            muito_perto = True
-                            break
-
-                    if not muito_perto:
-                        colocar_construcao(mapa, casa, x, y)
-                        fazendas_colocada.append((x, y))
-                        break
-
+            colocar_par_fazenda(mapa, item1, item2, 4, x, y)
+            todas_construcoes.append((x, y))
+            break
 
     if mapa[player_spawn_y][player_spawn_x] == '~':
         mapa[player_spawn_y][player_spawn_x] = '.'
@@ -332,10 +303,15 @@ def mapa_procedural(nome, largura, altura, seed=None):
     'G': term.red,
     'F': term.magenta,
     ',': term.bold_white_on_rosybrown2,
-    '!': term.lightsalmon
+    '!': term.lightsalmon,
+    '@': term.red_on_purble,
+    'O': term.lightgray_on_darkgray,
+    '/': term.brown,
+    '%': term.orange1_on_darkgray,
+    'V': term.darkgreen
     }
     obstaculos = set([
-        '#', '♣', '&', "C", '‼', '¥', 'o', '0', '1', '„', '♠', 'x', '$', '+', 'P', 'N', 'I', 'G', 'F', '!'
+        '#', '♣', '&', "C", '‼', '¥', 'o', '0', '1', '„', '♠', 'x', '$', '+', 'P', 'N', 'I', 'G', 'F', '!', '/', 'O', '@', '%', 'V'
     ])
 
     return {

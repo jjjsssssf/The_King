@@ -7,7 +7,7 @@ term = Terminal()
 art= art_ascii()
 ##ARQUIVO DO JOGADOR
 class jogador:
-    def __init__(self, nome, hp_max, atk, niv, xp_max, defesa, gold, stm_max, intt, mn_max, d_m, art_player,skin, skin_nome, mana_lit=None):
+    def __init__(self, nome, hp_max, atk, niv, xp_max, defesa, gold, stm_max, intt, mn_max, d_m, art_player,skin, skin_nome, mapa_x = None,mapa_y = None, mana_lit=None):
         self.nome = nome
         self.skin = skin
         self.skin_nome = skin_nome
@@ -21,6 +21,11 @@ class jogador:
         self.atk = atk
         self.andar = 0
         self.intt = intt
+        self.mapa_x = mapa_x
+        self.mapa_y = mapa_y
+        self.fov_bonus = 0
+        self.tocha_ultima_contagem = time.time()
+        self.tocha_acesa = False
         self.niv = niv
         self.buff_atk = 0
         self.buff_def = 0
@@ -78,57 +83,6 @@ class jogador:
             "Dentro_Farol": False,
         }
         self.classe = None 
-
-    def barra_de_vida(self, x_l, y_l, largura=25):
-        proporcao_hp = max(0, min(self.hp / self.hp_max, 1))
-        preenchido_hp = int(proporcao_hp * largura)
-        vazio_hp = largura - preenchido_hp
-        barra_hp = (
-            term.bold_green("=") * preenchido_hp +
-            term.green("=") * vazio_hp +
-            term.normal
-        )
-        porcentagem_hp = int(proporcao_hp * 100)
-        proporcao_stm = max(0, min(self.stm / self.stm_max, 1))
-        preenchido_stm = int(proporcao_stm * largura) 
-        vazio_stm = largura - preenchido_stm
-        barra_stm = (
-            term.bold_yellow("=") * preenchido_stm +
-            term.yellow("=") * vazio_stm +
-            term.normal
-        )
-        porcentagem_stm = int(proporcao_stm * 100)
-        proporcao_m = max(0, min(self.mana / self.mana_max, 1))
-        preenchido_m = int(proporcao_m * largura) 
-        vazio_m = largura - preenchido_m
-        barra_m = (
-            term.bold_magenta("=") * preenchido_m +
-            term.magenta("=") * vazio_m +
-            term.normal
-        )
-        porcentagem_m = int(proporcao_m * 100)
-        with term.location(x=x_l, y=y_l):
-            print(f"HP[{barra_hp}] {porcentagem_hp}%")
-        with term.location(x=x_l, y=y_l+1):
-            print(f"ST[{barra_stm}] {porcentagem_stm}%")
-        with term.location(x=x_l, y=y_l+2):
-            print(f"MG[{barra_m}] {porcentagem_m}%")
-        with term.location(x=x_l, y=y_l+3):
-            print(f"ATK: [{term.bold_red(str(self.atk))}]")
-        with term.location(x=x_l, y=y_l+4):
-            print(f"DEF: [{term.bold_blue(str(self.defesa))}]")
-        with term.location(x=x_l, y=y_l+5):
-            print(f"MGA: [{term.bold_magenta(str(self.dano_magico))}]")
-        with term.location(x=x_l, y=y_l+6):
-            print(f"INT: [{term.bold_gray(str(self.intt))}]")
-        with term.location(x=x_l, y=y_l+7):
-            print(f"Gold: [{term.bold_yellow(str(self.gold))}]")
-        with term.location(x=x_l, y=y_l+8):
-            print(f"Nivel: [{term.bold_green(str(self.niv))}]")
-        with term.location(x=x_l, y=y_l+9):
-            print(f"X: [{term.bold_blue(str(self.x_mapa))}] - Y: [{term.bold_red(str(self.y_mapa))}]")
-        with term.location(x=x_l, y=y_l+10):
-            print(f"Direção: [{term.bold_cyan(str(self.direcao))}]")
 
     def menu_status(self, x, y, largura=40):
         pagina = 0
@@ -230,7 +184,6 @@ class jogador:
 
         while True:
             clear_region_a(x=x, start_y=herd, end_y=herd-1, width=werd)
-
             mensagem = f"""Pontos: [{self.ponto}]
 HP: [{self.hp_max}]
 MP: [{self.stm_max}]
@@ -239,17 +192,16 @@ DEF: [{self.defesa}]
 MG: [{self.mana_max}]
 MA: [{self.dano_magico}]
 INT: [{self.intt}]
-
 Digite Nome e Quantidade
-            """
+                """
 
             draw_window(term, x=x, y=y, width=werd, height=herd, text_content=mensagem)
 
             if self.ponto >= 1:
-                with term.location(x=werd+x_i, y=herd-6):
+                with term.location(x=werd+x_i+10, y=herd-6):
                     up_input = input(">").strip().upper()
             else:
-                with term.location(x=werd+x_i, y=herd-6):
+                with term.location(x=werd+x_i+10, y=herd-6):
                     print("Você não tem Pontos")
                     input()
                     break
@@ -684,6 +636,7 @@ DEF: [{magia.bonus_def}]
             elif escolha == "2":
                 self.vender_itens(x+y, y, largura+25)
             elif escolha == "3":
+                clear()
                 return
             else:
                 print("Opção inválida.", x, y + 8, largura)
@@ -856,6 +809,7 @@ DEF: [{magia.bonus_def}]
                 entrada = input("> ").strip().lower()
 
             if entrada == "sair":
+                clear()
                 return None
 
             if entrada == ">":
@@ -952,8 +906,6 @@ DEF: [{magia.bonus_def}]
             inicio = pagina * receitas_por_pagina
             fim = inicio + receitas_por_pagina
             receitas_visiveis = receitas_lista[inicio:fim]
-
-            # Montar menu
             linhas = [""]
             for i, (nome_item, receita) in enumerate(receitas_visiveis, start=1):
                 requisitos = ", ".join(
@@ -979,6 +931,7 @@ DEF: [{magia.bonus_def}]
                 entrada = input("> ").strip().lower()
 
             if entrada == "sair":
+                clear()
                 return None
 
             if entrada == ">":
@@ -1073,11 +1026,11 @@ def escolher_tipo_receita(x, y, largura, altura):
         elif escolha == "2":
             return RECEITAS_MATERIAIS
         elif escolha.lower() == "sair":
+            clear()
             return None
         else:
             with term.location(x=x+1, y=y+5):
                 print("Escolha inválida, tente novamente.")
-
 
 def escolher_tipo_receita_for(x, y, largura, altura):
     while True:
@@ -1091,9 +1044,22 @@ def escolher_tipo_receita_for(x, y, largura, altura):
         elif escolha == "1":
             return RECEITAS_CONSUMIVEIS
         elif escolha.lower() == "sair":
+            clear()
             return None
         else:
             with term.location(x=x+1, y=y+5):
                 print("Escolha inválida, tente novamente.")
 
 
+def remover_equipamento(player, slot):
+    item = player.equipa.get(slot)
+    if item:
+        # Remove do equipamento
+        player.equipa[slot] = None
+        # Remove do inventário se estiver lá
+        if item in player.inventario:
+            player.inventario.remove(item)
+        # Caso seja tocha, apagar efeitos
+        if item.nome.lower() == "tocha":
+            player.tocha_acesa = False
+            player.tocha_duracao = 0

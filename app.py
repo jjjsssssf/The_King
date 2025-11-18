@@ -39,20 +39,30 @@ def gerar_mapa_assincrono(term, largura, altura, seed):
 def menu_inicial(x_l, y_l):
     NOME_DO_ARQUIVO = "Title_.mp3"
     escolher_e_tocar_musica(NOME_DO_ARQUIVO)
+
     while True:
         clear()
         menu_art = ascii.titulo
         opcoes = "[1] Jogar\n[2] Carregar\n[3] Sair"
         herd = menu_art.count("\n")
-        draw_window(term, x=x_l, y=y_l, width=90, height=24, text_content=menu_art)
+        draw_window(term, x=x_l, y=y_l, width=90, height=25, text_content=menu_art)
         draw_window(term, x=x_l+25, y=y_l+herd+1, width=25, height=6, text_content=opcoes)
+
         with term.location(x=x_l+27, y=y_l+herd+5):
             escolha = input(">")
+
         if escolha == "1":
+            # Limpa saves antigos
             limpar_todos_os_saves()
+            limpar_todos_os_player()
+
+            # Escolhas do jogador
             dificuldade_key = escolher_dificudade(x_l, y_l, menu_art)
             nome = solicitar_nome(x_l, y_l, menu_art)
-            skin_arte, cor_final, skin_nome = escolher_personagem(x_l, y_l) 
+            mapa_x, mapa_y = solicitar_tamanho(x_l, y_l, menu_art)
+            skin_arte, cor_final, skin_nome = escolher_personagem(x_l, y_l)
+
+            # Criação do jogador
             jj = jogador(
                 nome=nome,
                 hp_max=30,
@@ -67,17 +77,23 @@ def menu_inicial(x_l, y_l):
                 d_m=10,
                 art_player=skin_arte, 
                 skin=cor_final,     
-                skin_nome=skin_nome 
+                skin_nome=skin_nome,
+                mapa_x=mapa_x,
+                mapa_y=mapa_y
             )
             jj.dificuldade_atual = dificuldade_key
-            limpar_todos_os_saves()
-            limpar_todos_os_player()
             jj.inventario.append(TODOS_OS_ITENS['Bancada'])
+            jj.inventario.append(TODOS_OS_ITENS['Tocha'])
+            jj.inventario.append(TODOS_OS_ITENS['Pá'])
+
+            # Configuração do mapa
             seed_random = random.randint(1, 50)
-            x_random = random.randint(1, 800)
-            y_random = random.randint(1, 400)
+            x_random = random.randint(1, jj.mapa_x)
+            y_random = random.randint(1, jj.mapa_y)
             jj.seed = seed_random
-            config = gerar_mapa_assincrono(term, largura=800, altura=400, seed=jj.seed)
+            config = gerar_mapa_assincrono(term, largura=jj.mapa_x, altura=jj.mapa_y, seed=jj.seed)
+
+            # Mostra mini mapa
             mini_mapa(
                 x_l=0, y_l=0,
                 player=jj,
@@ -89,13 +105,14 @@ def menu_inicial(x_l, y_l):
                 obstaculos_custom=config["obstaculos"],
                 mapa_nome=config["nome"]
             )
+
         elif escolha == "2":
             player_carregado, mapas_carregados = carregar_jogo_global(filename="save_global.json")
             if player_carregado:
                 jj = player_carregado
                 ESTADO_MAPAS = mapas_carregados
-
                 estado_mapa_salvo = ESTADO_MAPAS.get(jj.mapa_atual)
+
                 if estado_mapa_salvo:
                     mapa_art_para_load = estado_mapa_salvo["mapa_art"]
                     cores_custom = estado_mapa_salvo.get("cores", None)
@@ -103,7 +120,7 @@ def menu_inicial(x_l, y_l):
                 else:
                     limpar_todos_os_saves()
                     limpar_todos_os_player()
-                    config = mapa_procedural(nome=jj.mapa_atual, largura=100, altura=30, seed=42)
+                    config = mapa_procedural(nome=jj.mapa_atual, largura=jj.mapa_x, altura=jj.mapa_y, seed=42)
                     mapa_art_para_load = config["mapa"]
                     cores_custom = config.get("cores", None)
                     obstaculos_custom = config.get("obstaculos", None)
@@ -115,8 +132,8 @@ def menu_inicial(x_l, y_l):
                     y_l=0,
                     player=jj,
                     mapas_=mapa_art_para_load,
-                    camera_w=35,
-                    camera_h=15,
+                    camera_w=50,
+                    camera_h=25,
                     x_p=x_p_load,
                     y_p=y_p_load,
                     menager="",
@@ -125,6 +142,7 @@ def menu_inicial(x_l, y_l):
                     obstaculos_custom=obstaculos_custom,
                     ESTADO_GLOBAL_LOAD=mapas_carregados
                 )
+            else:
                 with term.location(x_l+27, y=y_l+herd+6):
                     print(term.red("Nenhum save encontrado!"))
                     input("Pressione ENTER para continuar...")
@@ -137,7 +155,7 @@ def solicitar_nome(x_l, y_l, menu_art):
         clear()
         prompt = "Qual será seu Nome:\n(max 8 caracteres)"
         num_linhas = prompt.count("\n") + 4
-        draw_window(term, x=x_l, y=y_l, width=90, height=24, text_content=menu_art)
+        draw_window(term, x=x_l, y=y_l, width=90, height=25, text_content=menu_art)
         draw_window(term, x=x_l+25, y=y_l+num_linhas+3, width=27, height=num_linhas, text_content=prompt)
 
         with term.location(x=x_l+26, y=y_l+num_linhas+6):
@@ -149,7 +167,27 @@ def solicitar_nome(x_l, y_l, menu_art):
             mostrar_mensagem(x_l+26, y_l+num_linhas+6, "Digite pelo menos 1 letra")
         else:
             return nome
-        
+
+def solicitar_tamanho(x_l, y_l, menu_art):
+    while True:
+        clear()
+        prompt = "Escolha o Tamanho do Mapa\n[1] Pequeno (500x250)\n[2] Médio (800x400)\n[3] Grande (1100x550)"
+        num_linhas = prompt.count("\n") + 4        
+        draw_window(term, x=x_l, y=y_l, width=90, height=25, text_content=menu_art)
+        draw_window(term, x=x_l+25, y=y_l+num_linhas+1, width=30, height=num_linhas, text_content=prompt)
+
+        with term.location(x=x_l+26, y=y_l+num_linhas+6):
+            escolha = input(">")
+
+        if escolha == "1":
+            return 500, 250  # largura, altura
+        elif escolha == "2":
+            return 800, 400
+        elif escolha == "3":
+            return 1100, 550
+        else:
+            mostrar_mensagem(x_l+26, y_l+num_linhas+6, "Opção inválida! Escolha 1, 2 ou 3")
+
 def escolher_personagem(x_l, y_l):
     personagens = {
         "1": {"nome": "necro", "arte": ascii.necro},
@@ -158,7 +196,7 @@ def escolher_personagem(x_l, y_l):
     }
     while True:
         clear()
-        draw_window(term, x=x_l, y=y_l, width=90, height=24)
+        draw_window(term, x=x_l, y=y_l, width=90, height=25)
         draw_window(term, x=x_l+2, y=y_l+1, width=25, height=11, title="1", text_content=ascii.necro)
         draw_window(term, x=x_l+32, y=y_l+1, width=25, height=11, title="2", text_content=ascii.guerriro)
         draw_window(term, x=x_l+64, y=y_l+1, width=25, height=11, title="3", text_content=ascii.mago)
@@ -217,7 +255,7 @@ def escolher_dificudade(x_l, y_l, menu_art):
         clear()
         prompt = "Escolha a Dificuldade\n[1] Fácil (x0.5)\n[2] Normal (x1.0)\n[3] Difícil (x2.0)"
         num_linhas = prompt.count("\n") + 4        
-        draw_window(term, x=x_l, y=y_l, width=90, height=24, text_content=menu_art)
+        draw_window(term, x=x_l, y=y_l, width=90, height=25, text_content=menu_art)
         draw_window(term, x=x_l+25, y=y_l+num_linhas+1, width=27, height=num_linhas, text_content=prompt)
 
         with term.location(x=x_l+26, y=y_l+num_linhas+6):
@@ -232,4 +270,5 @@ def escolher_dificudade(x_l, y_l, menu_art):
         else:
             mostrar_mensagem(x_l+26, y_l+num_linhas+6, "Opção inválida. Use 1, 2 ou 3.")
 
+clear()
 menu_inicial(x_l=0, y_l=0)

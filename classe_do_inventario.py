@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 class Item:
-    def __init__(self, nome, tipo, nivel = 0, bonus_hp=0, bonus_stm = 0,bonus_mana=0, bonus_atk=0, bonus_def=0, bonus_atk_mana=0, bonus_hp_max=0,preco=0, slot_equip=None, vendivel=True, comprável=True):
+    def __init__(self, nome, tipo, nivel = 0, bonus_hp=0, bonus_stm = 0,bonus_mana=0, bonus_atk=0, bonus_def=0, bonus_atk_mana=0, bonus_hp_max=0,preco=0, slot_equip=None, vendivel=True, comprável=True, duracao_max=0):
         self.nome = nome
         self.vendivel = vendivel
         self.comprável = comprável
@@ -16,6 +16,7 @@ class Item:
         self.bonus_def = bonus_def
         self.slot_equip = slot_equip
         self.nivel = nivel
+        self.duracao_max = duracao_max
 
     def __repr__(self):
         return f"Item(nome='{self.nome}', tipo='{self.tipo}', comprável={self.comprável})"
@@ -24,12 +25,14 @@ TODOS_OS_ITENS = {
     ###ARMAS
     "Espada": Item(nome=f"Espada", tipo="Equipavel", preco=100, bonus_atk=10, slot_equip="m_pri", nivel=1),
     "Vara de Pesca": Item(nome=f"Vara de Pesca", tipo="Equipavel", preco=100, bonus_atk=2, slot_equip="m_seg", nivel=1),
-    "Picareta/Madeira": Item(nome='Picareta/Madeira', tipo='Equipavel', preco=100, bonus_def=2, slot_equip="m_seg",nivel=1),
-    "Picareta/Pedra": Item(nome='Picareta/Pedra', tipo='Equipavel', preco=200, bonus_def=4, slot_equip="m_seg",nivel=1),
+    "Picareta/Madeira": Item(nome='Picareta/Madeira', tipo='Equipavel', preco=100, bonus_def=2, slot_equip="m_pri",nivel=1),
+    "Picareta/Pedra": Item(nome='Picareta/Pedra', tipo='Equipavel', preco=200, bonus_def=4, slot_equip="m_pri",nivel=1),
     "Pá": Item(nome='Pá', tipo='Equipavel', preco=100, slot_equip="m_seg", nivel=1),
     "Enchada": Item(nome='Enchada', tipo='Equipavel', preco=100, slot_equip="m_seg", nivel=1),
-    'Machado/Pedra': Item(nome='Machado/Pedra', tipo='Equipavel', preco=200, bonus_atk=4, slot_equip="m_seg", nivel=1),
-    'Machado/Madeira': Item(nome='Machado/Madeira', tipo='Equipavel', preco=100, bonus_atk=2, slot_equip="m_seg", nivel=1),
+    'Machado/Pedra': Item(nome='Machado/Pedra', tipo='Equipavel', preco=200, bonus_atk=4, slot_equip="m_pri", nivel=1),
+    'Machado/Madeira': Item(nome='Machado/Madeira', tipo='Equipavel', preco=100, bonus_atk=2, slot_equip="m_pri", nivel=1),
+    'Tocha': Item(nome='Tocha', tipo='Equipavel', preco=100, bonus_atk=2, slot_equip="m_seg", duracao_max=60),
+
     ##CONS
     "Fruta": Item(nome="Fruta", tipo="Consumivel", preco=30, bonus_hp=20, bonus_stm=10),
     "Pão": Item(nome="Pão", tipo="Consumivel", preco=50, bonus_hp=40, bonus_stm=20),
@@ -61,6 +64,7 @@ TODOS_OS_ITENS = {
     "Pedra": Item(nome="Pedra", tipo="Material", slot_equip="slots", preco=25),
     "Bancada": Item(nome="Bancada", tipo="Material", slot_equip="slots", preco=100),
     "Semente/Trigo": Item(nome="Semente/Trigo", tipo="Material", slot_equip="slots", preco=5),
+    "Semente/Morango": Item(nome="Semente/Morrango", tipo="Material", slot_equip="slots", preco=5),
     "Semente/Abobora": Item(nome="Semente/Abobora", tipo="Material", slot_equip="slots", preco=10),
     "Semente/Milho": Item(nome="Semente/Milho", tipo="Material", slot_equip="slots", preco=5),
     'Muda/Arvore': Item(nome="Muda/Arvore", tipo="Material", slot_equip="slots", preco=10),
@@ -68,6 +72,7 @@ TODOS_OS_ITENS = {
     'Fornalha': Item(nome="Fornalha", tipo="Material", slot_equip="slots", vendivel=False, comprável=False),
     ##Produtors
     "Trigo": Item(nome="Trigo", tipo="Produto", preco=100),
+    "Morango": Item(nome="Morango", tipo="Produto", preco=100),
     "Milho": Item(nome="Milho", tipo="Produto", preco=100),
     "Graveto": Item(nome="Graveto", tipo="Produto", preco=2),
     "Carvão": Item(nome="Carvão", tipo="Produto", preco=250),
@@ -88,6 +93,7 @@ RECEITAS_EQUIPAMENTOS = {
     'Vara de Pesca': CraftRecipe('Vara de Pesca',{'Lã': 3, 'Graveto': 4}),
     'Pá': CraftRecipe('Pá',{'Madeira': 10, 'Graveto': 4}),
     'Enchada': CraftRecipe('Enchada',{'Pedra':5 , 'Graveto': 4}),
+    'Tocha': CraftRecipe('Tocha',{'Graveto':2 , 'Carvão': 1}, quantidade=2),
     'Picareta/Madeira': CraftRecipe('Picareta/Madeira',{'Madeira': 5, 'Graveto': 4}),
     'Machado/Madeira': CraftRecipe('Machado/Madeira',{'Madeira': 5, 'Graveto': 4}),
     'Picareta/Pedra': CraftRecipe('Picareta/Pedra',{'Pedra': 5, 'Graveto': 4}),

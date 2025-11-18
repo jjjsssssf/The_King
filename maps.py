@@ -45,10 +45,11 @@ CASAS = [
     ],
     [
     '########............',
-    '#:::::B#..!!!!!!!!!!',
-    '#::&:::#..!........!',
-    '#::::::#...........!',
-    r'#\\#####..!!!!!!!!!!',
+    '#::::::#.0.0.0.0.0.0',
+    '#:&::::#............',
+    '#::::::#.¥¥¥¥¥¥¥¥¥¥¥',
+    '#::::::#............',
+    r'####\###............',
     ],
     [
     '#########',
@@ -56,7 +57,7 @@ CASAS = [
     '#:::::::#',
     '#:::::::#',
     '#:::::::#',
-    r'##\\######'
+    r'##\\#####'
     ]
 ]
 IGREJAS = [
@@ -75,9 +76,9 @@ FAZENDAD = [
 
     [
     '!!!!!!!!!!!!!!!!',
+    r'!♀.♀.♀.♀.♀.♀.♀.!',
     '!..............!',
-    '!..............!',
-    '!..............!',
+    r'!.♀.♀.♀.♀.♀.♀.♀!',
     '!..............!',
     r'!\\!!!!!!!!!!!!!',
     ],
@@ -85,8 +86,8 @@ FAZENDAD = [
     '.#######.',
     '#:::&:::#',
     '#:::::::#',
-    '#B::::::#',
-    '#B::::::#',
+    '#:::::::#',
+    '#:::::::#',
     r'####\\###'
     ]
 
@@ -115,7 +116,6 @@ BOSS = [
         r'###\### ',
     ]
 ]
-
 
 def colocar_construcao(mapa, estrutura, pos_x, pos_y):
     mapa_altura = len(mapa)
@@ -209,7 +209,13 @@ def gerar_mapa_procedural_unido(largura, altura, seed=None):
         return True
 
     #Casas
-    qtd_construcoes = int(total * 0.0003)
+    if total == 125000:
+        casa_w = 10
+    if total == 320000:
+        casa_w = 20
+    if total == 605000:
+        casa_w = 30
+    qtd_construcoes = casa_w
     for _ in range(qtd_construcoes):
         casa = random.choice(CASAS)
         alt_casa = len(casa)
@@ -229,7 +235,13 @@ def gerar_mapa_procedural_unido(largura, altura, seed=None):
             break
 
     #Igrejas
-    qtd_igrejas = int(total * 0.0001)
+    if total == 125000:
+        igrejas_w = 5
+    if total == 320000:
+        igrejas_w = 10
+    if total == 605000:
+        igrejas_w = 15
+    qtd_igrejas = igrejas_w
     for _ in range(qtd_igrejas):
         igreja = random.choice(IGREJAS)
         alt = len(igreja)
@@ -249,7 +261,13 @@ def gerar_mapa_procedural_unido(largura, altura, seed=None):
             break
 
     #Fazendas
-    qtd_fazendas = int(total * 0.0003)
+    if total == 125000:
+        fezenda_w = 5
+    if total == 320000:
+        fezenda_w = 10
+    if total == 605000:
+        fezenda_w = 15
+    qtd_fazendas = fezenda_w
     for _ in range(qtd_fazendas):
         item1 = FAZENDAD[0]
         item2 = FAZENDAD[1]
@@ -308,10 +326,12 @@ def mapa_procedural(nome, largura, altura, seed=None):
     'O': term.lightgray_on_darkgray,
     '/': term.brown,
     '%': term.orange1_on_darkgray,
-    'V': term.darkgreen
+    'V': term.darkgreen,
+    '♀': term.bold_red2,
+    "7": term.lightgreen
     }
     obstaculos = set([
-        '#', '♣', '&', "C", '‼', '¥', 'o', '0', '1', '„', '♠', 'x', '$', '+', 'P', 'N', 'I', 'G', 'F', '!', '/', 'O', '@', '%', 'V'
+        '#', '♣', '&', "C", '‼', '¥', 'o', '0', '1', '„', '♠', 'x', '$', '+', 'P', 'N', 'I', 'G', 'F', '!', '/', 'O', '@', '%', 'V', '♀', "7"
     ])
 
     return {
@@ -365,8 +385,9 @@ def gerar_caverna(largura, altura, player_b, seed=None):
     total = largura * altura
     qtd_ferro = int(total * 0.03)
     qtd_carvao = int(total * 0.05)
-    qtd_esqueleto = int(total * 0.0002)
-    qtd_zumbi = int(total * 0.0001)
+    qtd_esqueleto = random.randint(5, 30)
+    qtd_zumbi = random.randint(5, 30)
+    qtd_bau = random.randint(1, 15)
 
     pos_pedras = [(x, y) for y in range(altura) for x in range(largura) if mapa[y][x] == 'o']
     pos_terra = [(x, y) for y in range(altura) for x in range(largura) if mapa[y][x] == '.']
@@ -397,6 +418,14 @@ def gerar_caverna(largura, altura, player_b, seed=None):
             colocados += 1
             if colocados >= qtd_zumbi:
                 break
+    colocados = 0
+    for x, y in pos_terra:
+        if mapa[y][x] == '.':
+            mapa[y][x] = 'B'
+            colocados += 1
+            if colocados >= qtd_bau:
+                break
+
     colocados = 0
     for x, y in pos_terra:
         if mapa[y][x] == '.':

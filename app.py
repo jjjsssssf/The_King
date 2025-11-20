@@ -65,8 +65,8 @@ def menu_inicial(x_l, y_l):
             # Criação do jogador
             jj = jogador(
                 nome=nome,
-                hp_max=30,
-                atk=5,
+                hp_max=50,
+                atk=10,
                 niv=1,
                 xp_max=100,
                 defesa=0,

@@ -215,6 +215,8 @@ def gerar_mapa_procedural_unido(largura, altura, seed=None):
         casa_w = 20
     if total == 605000:
         casa_w = 30
+    else:
+        casa_w = 0
     qtd_construcoes = casa_w
     for _ in range(qtd_construcoes):
         casa = random.choice(CASAS)
@@ -241,6 +243,8 @@ def gerar_mapa_procedural_unido(largura, altura, seed=None):
         igrejas_w = 10
     if total == 605000:
         igrejas_w = 15
+    else:
+        igrejas_w = 0
     qtd_igrejas = igrejas_w
     for _ in range(qtd_igrejas):
         igreja = random.choice(IGREJAS)
@@ -267,6 +271,8 @@ def gerar_mapa_procedural_unido(largura, altura, seed=None):
         fezenda_w = 10
     if total == 605000:
         fezenda_w = 15
+    else:
+        fezenda_w = 0
     qtd_fazendas = fezenda_w
     for _ in range(qtd_fazendas):
         item1 = FAZENDAD[0]
@@ -303,6 +309,7 @@ def mapa_procedural(nome, largura, altura, seed=None):
     "C":term.brown,
     '‼':term.yellow2,
     '¥':term.forestgreen,
+    '☼': term.bold_brown_on_gray,
     'o':term.antiquewhite3,
     '0':term.coral,
     '1':term.brown,
@@ -331,7 +338,7 @@ def mapa_procedural(nome, largura, altura, seed=None):
     "7": term.lightgreen
     }
     obstaculos = set([
-        '#', '♣', '&', "C", '‼', '¥', 'o', '0', '1', '„', '♠', 'x', '$', '+', 'P', 'N', 'I', 'G', 'F', '!', '/', 'O', '@', '%', 'V', '♀', "7"
+        '#', '♣', '&', "C", '‼', '¥', 'o', '0', '1', '„', '♠', 'x', '$', '+', 'P', 'N', 'I', 'G', 'F', '!', '/', 'O', '@', '%', 'V', '♀', "7", "☼"
     ])
 
     return {

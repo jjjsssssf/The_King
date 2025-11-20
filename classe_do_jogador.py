@@ -26,10 +26,12 @@ class jogador:
         self.fov_bonus = 0
         self.tocha_ultima_contagem = time.time()
         self.tocha_acesa = False
+        self.tocha_duracao = 60
         self.niv = niv
         self.buff_atk = 0
         self.buff_def = 0
         self.ponto = 0
+        self.tempo_inicio_global = 300
         self.limite_inventario_base = 10 
         self.xp_max = xp_max
         self.dano_magico = d_m
@@ -58,6 +60,7 @@ class jogador:
         self.equipa = {
             "m_pri": None,
             "m_seg": None,
+            "m_ter": None,
             "m_ter": None,
             "c_cap": None,
             "p_pet": None,
@@ -93,6 +96,7 @@ class jogador:
         slots_legiveis = {
             "m_pri": "Primeira Mão",
             "m_seg": "Segunda Mão",
+            "m_ter": "Liminaria",
             "c_cap": "Cabeça",
             "p_pet": "Peito"
         }   
@@ -169,7 +173,7 @@ class jogador:
             time.sleep(1)
         print(f"Você ganhou {xp_ganho} de XP. Total: {self.xp}/{self.xp_max}")
         time.sleep(2)
-
+#r
     def up(self, x, y, werd, herd, x_i):
         STATUS_MAP = {
             "HP": ("hp_max", "HP"),
@@ -234,7 +238,7 @@ Digite Nome e Quantidade
             with term.location(x=werd+x_i, y=herd-6):
                 print(msg)
             time.sleep(2)
-
+#@
     def aprender_magias(self, term, x_menu, y_menu, wend, herd):
         term = Terminal()
         tipos_magias = sorted(set(magia.tipo for magia in TODAS_AS_MAGIAS.values()))
@@ -517,7 +521,7 @@ DEF: [{magia.bonus_def}]
                 if self.stm < self.stm_max:
                     ganho = min(item.bonus_stm, self.stm_max - self.stm)
                     self.stm += ganho
-                    efeitos_aplicados.append(f"+{ganho} Stamina")
+                    efeitos_aplicados.append(f"\n+{ganho} Stamina")
                     sucesso = True
                 else:
                     efeitos_aplicados.append("Stamina já está cheia")
@@ -539,7 +543,7 @@ DEF: [{magia.bonus_def}]
                 # Nenhum atributo pôde ser restaurado
                 mensagem = f"{item.nome} não teve efeito.\n(Tudo já está cheio)"
 
-        draw_window(term, x_janela, y_janela, width=werd, height=altura_mensagem, text_content=mensagem)
+        draw_window(term, x_janela, y_janela, width=werd, height=altura_mensagem+1, text_content=mensagem)
         time.sleep(2)
         clear_region_a(x=x_janela, start_y=y_janela, end_y=y_janela + altura_mensagem, width=werd)
         return sucesso
@@ -578,7 +582,14 @@ DEF: [{magia.bonus_def}]
         slot = item.slot_equip
         alteracao_efetuada = False
 
-        if not self.equipa.get(slot):  # Nada equipado — equipa direto
+        if self.equipa.get(slot) and self.equipa[slot].nome.lower() == "tocha":
+            feedback = "A tocha não pode ser desequipada."
+            draw_window(term, x_janela, y_janela, width=werd, height=altura_feedback, text_content=feedback)
+            time.sleep(1.8)
+            clear_region_a(x_janela, y_janela, y_janela + altura_feedback, werd)
+            return False
+
+        if not self.equipa.get(slot):
             self.equipa[slot] = item
             self.atk += item.bonus_atk
             self.defesa += item.bonus_def
@@ -1049,7 +1060,6 @@ def escolher_tipo_receita_for(x, y, largura, altura):
         else:
             with term.location(x=x+1, y=y+5):
                 print("Escolha inválida, tente novamente.")
-
 
 def remover_equipamento(player, slot):
     item = player.equipa.get(slot)

@@ -742,7 +742,7 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
     CORES = cores_custom or CORES_DO_ESTADO or {}
     plantacoes_ativas = ESTADO_MAPAS[mapa_id].get("plantacoes", {})
     for (px, py), dados in plantacoes_ativas.items():
-        if mapa_art[py][px] in ('*', '='): 
+        if mapa_art[py][px] in ('*', '=', "1", "7"): 
             cor_plantio = dados.get("cor")
             if cor_plantio:
                 CORES[(px, py)] = cor_plantio
@@ -756,11 +756,8 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
     tempo_decorrido = 0
     if estado_carregado:
         tempo_decorrido = estado_carregado.get("tempo_decorrido", 0)
-
-    tempo_inicio = time.time() - tempo_decorrido
-
-    ESTADO_MAPAS[mapa_id]["tempo_inicio"] = tempo_inicio
-    ESTADO_MAPAS[mapa_id]["tempo_decorrido"] = tempo_decorrido
+    if not hasattr(player, "tempo_inicio_global"):
+        player.tempo_inicio_global = time.time()
 
     TEMPO_TOTAL_DIA = 15 * 60
     PERIODOS = {
@@ -769,8 +766,7 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
         "noite": (2 * TEMPO_TOTAL_DIA / 3, TEMPO_TOTAL_DIA)
     }
 
-    # calcula corretamente o período baseado no tempo salvo
-    tempo_atual = tempo_decorrido % TEMPO_TOTAL_DIA
+    tempo_atual = (time.time() - player.tempo_inicio_global) % TEMPO_TOTAL_DIA
 
     if PERIODOS["dia"][0] <= tempo_atual < PERIODOS["dia"][1]:
         periodo_atual = "dia"
@@ -800,6 +796,7 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
                 if 0 <= x < mapa_largura and 0 <= y < mapa_altura:
                     if dx*dx + dy*dy <= raio_fov*raio_fov:
                         visiveis.add((x, y))
+
         return visiveis
 ##fim
     while True:
@@ -813,7 +810,8 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
 
             if player.tocha_duracao <= 0:
                 feedback_message = "Sua tocha apagou."
-                remover_equipamento(player, "m_seg")
+                remover_equipamento(player, "m_ter")
+
         if player.hp <= 0:
             player_carregado, mapas_carregados = carregar_jogo_global(filename="save_global.json")
             if player_carregado:
@@ -860,10 +858,11 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
             else:
                 exit()
         
-        tempo_decorrido = (time.time() - tempo_inicio) % TEMPO_TOTAL_DIA
-        if PERIODOS["dia"][0] <= tempo_decorrido < PERIODOS["dia"][1]:
+        tempo_atual = (time.time() - player.tempo_inicio_global) % TEMPO_TOTAL_DIA
+
+        if PERIODOS["dia"][0] <= tempo_atual < PERIODOS["dia"][1]:
             periodo_atual = "dia"
-        elif PERIODOS["tarde"][0] <= tempo_decorrido < PERIODOS["tarde"][1]:
+        elif PERIODOS["tarde"][0] <= tempo_atual < PERIODOS["tarde"][1]:
             periodo_atual = "tarde"
         else:
             periodo_atual = "noite"
@@ -871,20 +870,17 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
         regeneracoes = ESTADO_MAPAS[mapa_id].get("regeneracoes", {})
         tempo_atual = time.time()
         for (px, py), dados in list(regeneracoes.items()):
+            tipo_original = dados.get("tipo_original")
             tempo_passado = tempo_atual - dados["tempo_inicio"]
-            tempo_regeneracao = dados.get("tempo_regeneracao", 30)
-            if tempo_passado >= tempo_regeneracao:
-                substituir_caractere(mapa_art, px, py, '♠')
-            if tempo_passado >= tempo_regeneracao:
-                tipo_original = dados.get("tipo_original", None)
-                if tipo_original == '0':     # abóbora
-                    substituir_caractere(mapa_art, px, py, '0')
-                elif tipo_original == '♀':   # morango
-                    substituir_caractere(mapa_art, px, py, '♀')
-                else:
-                    substituir_caractere(mapa_art, px, py, '.')
+
+            # Se o tile NO MOMENTO não for mais um 'x' ou '7', não regenera!
+            if mapa_art[py][px] != 'x' and mapa_art[py][px] != '7':
                 del regeneracoes[(px, py)]
-                salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+                continue
+
+            if tempo_passado >= dados["tempo_regeneracao"]:
+                substituir_caractere(mapa_art, px, py, tipo_original)
+                del regeneracoes[(px, py)]
 
         plantacoes = ESTADO_MAPAS[mapa_id].get("plantacoes", {})
         tempo_atual = time.time()
@@ -908,6 +904,8 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
                     substituir_caractere(mapa_art, px, py, '.')
                 elif tipo == 'morrango':
                     substituir_caractere(mapa_art, px,py, "♀")
+                elif tipo == 'algodão':
+                    substituir_caractere(mapa_art, px,py, "☼")
                 else:
                     substituir_caractere(mapa_art, px, py, "¶")
                 
@@ -988,7 +986,7 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
 
             draw_window(
                 term,
-                x=x_l + CAMERA_WIDTH,
+                x=x_l + CAMERA_WIDTH + 2,
                 y=y_l,
                 width=35,
                 height=15,
@@ -996,12 +994,12 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
             )
 
             for i, line in enumerate(wrapped_lines):
-                with term.location(x_l + CAMERA_WIDTH + 1, y_l + 1 + i):
+                with term.location(x_l + CAMERA_WIDTH + 3, y_l + 1 + i):
                     for char in line:
                         print(char, end='', flush=True)
                         time.sleep(velocidade)
 
-            with term.location(x_l + 35 + 7, y_l + 15):
+            with term.location(x_l + CAMERA_WIDTH + 2, y_l + 15):
                 input(term.bold_cyan("[Pressione Enter para continuar]"))
             clear()
 
@@ -1173,13 +1171,17 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
             altura = len(mapa_art)
             largura = len(mapa_art[0])
 
+            aspect = 0.5  # ajuste conforme proporção do terminal
+
             for dy in range(-raio_fov, raio_fov + 1):
                 for dx in range(-raio_fov, raio_fov + 1):
                     x = player.x_mapa + dx
                     y = player.y_mapa + dy
                     if 0 <= x < largura and 0 <= y < altura:
-                        if dx**2 + dy**2 <= raio_fov**2:
+                        dist = (dx*dx) + (dy*dy) / (aspect*aspect)
+                        if dist <= raio_fov * raio_fov:
                             visiveis.add((x, y))
+
             # -------------------
             # Janela do Mapa
             # -------------------
@@ -1230,24 +1232,26 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
                     linha_baixo = linha_baixo.replace("►", term.green("►") if player.direcao == "direita" else term.red("►"))
                     painel_text = linha_baixo
                 elif j == 3:
-                    painel_text = f"HP[{player.hp_max}/{player.hp}]".ljust(painel_width)
+                    painel_text = f"Nome: [{player.nome}]".ljust(painel_width)
                 elif j == 4:
-                    painel_text = f"STM[{player.stm_max}/{player.stm}]".ljust(painel_width)
+                    painel_text = f"HP[{player.hp_max}/{player.hp}]".ljust(painel_width)
                 elif j == 5:
-                    painel_text = f"MG[{player.mana_max}/{player.mana}]".ljust(painel_width)
+                    painel_text = f"STM[{player.stm_max}/{player.stm}]".ljust(painel_width)
                 elif j == 6:
-                    painel_text = f"ATK[{player.atk}]".ljust(painel_width)
+                    painel_text = f"MG[{player.mana_max}/{player.mana}]".ljust(painel_width)
                 elif j == 7:
-                    painel_text = f"DEF[{player.defesa}]".ljust(painel_width)
+                    painel_text = f"ATK[{player.atk}]".ljust(painel_width)
                 elif j == 8:
-                    painel_text = f"INT[{player.intt}]".ljust(painel_width)
+                    painel_text = f"DEF[{player.defesa}]".ljust(painel_width)
                 elif j == 9:
-                    painel_text = f"MA[{player.dano_magico}]".ljust(painel_width)
+                    painel_text = f"INT[{player.intt}]".ljust(painel_width)
                 elif j == 10:
-                    painel_text = f"X[{player.x_mapa}] Y[{player.y_mapa}]".ljust(painel_width)
+                    painel_text = f"MA[{player.dano_magico}]".ljust(painel_width)
                 elif j == 11:
-                    painel_text = f"Tempo".ljust(painel_width)
+                    painel_text = f"X[{player.x_mapa}] Y[{player.y_mapa}]".ljust(painel_width)
                 elif j == 12:
+                    painel_text = f"Tempo".ljust(painel_width)
+                elif j == 13:
                     painel_text = f"{periodo_atual}".ljust(painel_width)
                 else:
                     painel_text = " " * painel_width
@@ -1269,7 +1273,7 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
 
             print("".join(frame), end="")
 
-        item_equipado = player.equipa.get("m_seg")
+        item_equipado = player.equipa.get("m_ter")
         fov_bonus = 0
         if (item_equipado and 
             item_equipado.nome.lower() == "tocha" and 
@@ -1281,10 +1285,10 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
         if player.mapa_atual.startswith('Caverna'):
             raio_fov = 7
         elif player.mapa_atual == 'Mundo':
-            if periodo_atual in ['manhã', 'tarde', 'dia']:
-                raio_fov = 30
+            if periodo_atual in ['tarde', 'dia']:
+                raio_fov = 25
             elif periodo_atual == 'noite':
-                raio_fov = 7 
+                raio_fov = 15
         else:
             raio_fov = 5
 
@@ -1456,8 +1460,17 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
                 nonlocal pressed_key
                 try:
                     pressed_key = key.char.lower()
-                except:
-                    pressed_key = None
+                except AttributeError:
+                    if key == keyboard.Key.up:
+                        pressed_key = "Keyup"
+                    elif key == keyboard.Key.down:
+                        pressed_key = "Keydown"
+                    elif key == keyboard.Key.left:
+                        pressed_key = "Keyleft"
+                    elif key == keyboard.Key.right:
+                        pressed_key = "Keyright"
+                    else:
+                        pressed_key = None
                 return False
 
             with keyboard.Listener(on_press=on_press) as listener:
@@ -1466,23 +1479,35 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
             movi = pressed_key
             if movi is None:
                 continue
+
             direcoes = {
                 "w": (0, -1),
                 "s": (0, 1),
                 "a": (-1, 0),
                 "d": (1, 0),
             }
+
             tecla_para_direcao = {
                 "w": "cima",
                 "s": "baixo",
                 "a": "esquerda",
-                "d": "direita"
+                "d": "direita",
+            }
+            cetinas = {
+            "Keyup": "cima",
+            "Keydown": "baixo",
+            "Keyright": "direita",
+            "Keyleft": "esquerda"
+
             }
 
             # Movimento
             if movi in direcoes:
-                dx, dy = direcoes[movi]
+                if movi in direcoes:
+                    dx, dy = direcoes[movi]
+
                 player.direcao = tecla_para_direcao[movi]
+
                 passo_x = player.x_mapa + dx
                 passo_y = player.y_mapa + dy
 
@@ -1506,6 +1531,9 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
                     player.inventario_(x=x_l + CAMERA_WIDTH + 2, y=y_l, werd=40, herd=0, batalha=False)
                     clear()
                     feedback_message = "Inventário fechado."
+
+                elif movi in cetinas:
+                    player.direcao = cetinas[movi]
 
                 elif movi == 'h':
                     def tutorail():
@@ -1580,17 +1608,6 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
                     chao_atual = mapa_art[player.y_mapa][player.x_mapa]
                     
                     item_equipado = player.equipa.get("m_seg")
-
-                    if item_equipado and item_equipado.nome.lower() == "tocha":
-                        if not player.tocha_acesa:
-                            feedback_message = "Você acendeu uma tocha"
-                            player.stm -= 5
-                            player.tocha_acesa = True
-                            player.tocha_duracao = item_equipado.duracao_max  # 300s por exemplo
-                            player.tocha_ultima_contagem = time.time()
-                        else:
-                            feedback_message = "A tocha já está acesa"
-
                     # Lógica de Arar
                     if chao_atual == "." and item_equipado and item_equipado.nome.lower() == "enchada":
                         feedback_message = 'Você arou o chão'
@@ -1607,13 +1624,13 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
                         "tempo_plantio": time.time(),
                         "tempo_crescimento": tempo_crescimento,}
                         salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                        itens_ale = random.choice(["Semente/Trigo", "Semente/Milho", "Semente/Abobora",'Nada','Nada','Nada',
+                        itens_ale = random.choice(["Semente/Trigo", "Semente/Milho", "Semente/Algodão",'Nada','Nada','Nada',
                                                     'Nada','Nada','Nada','Nada'])
                         if itens_ale == 'Nada':
                             pass
                         else:
                             player.inventario.append(TODOS_OS_ITENS[f"{itens_ale}"])
-                            feedback_message = f'Você cavou um buraco\nconseguio um {itens_ale}'
+                            feedback_message = f'Você cavou um buraco conseguio um {itens_ale}'
                     
                     # Feedback de Buraco/Terra Arada
                     elif chao_atual == ',':
@@ -1714,6 +1731,18 @@ def mini_mapa(x_l, y_l, player, mapas_, camera_w, camera_h, x_p, y_p, menager,co
                     else:
                         feedback_message = "Nada para interagir na sua frente."
                 
+                elif movi == "f":
+                    item_equipado_1 = player.equipa.get("m_ter")
+
+                    if item_equipado_1 and item_equipado.nome.lower() == "tocha":
+                        if not player.tocha_acesa:
+                            feedback_message = "Você acendeu uma tocha"
+                            player.tocha_acesa = True
+                            player.tocha_duracao = item_equipado.duracao_max
+                            player.tocha_ultima_contagem = time.time()
+                        else:
+                            feedback_message = "A tocha já está acesa"
+
                 elif movi.isdigit():
                     entrada = [movi]
                     feedback_message = usar_item(

@@ -31,11 +31,11 @@ TODOS_OS_ITENS = {
     "Enchada": Item(nome='Enchada', tipo='Equipavel', preco=100, slot_equip="m_seg", nivel=1),
     'Machado/Pedra': Item(nome='Machado/Pedra', tipo='Equipavel', preco=200, bonus_atk=4, slot_equip="m_pri", nivel=1),
     'Machado/Madeira': Item(nome='Machado/Madeira', tipo='Equipavel', preco=100, bonus_atk=2, slot_equip="m_pri", nivel=1),
-    'Tocha': Item(nome='Tocha', tipo='Equipavel', preco=100, bonus_atk=2, slot_equip="m_seg", duracao_max=60),
-
+    'Tocha': Item(nome='Tocha', tipo='Equipavel', preco=100, bonus_atk=2, slot_equip="m_ter", duracao_max=60),
     ##CONS
-    "Fruta": Item(nome="Fruta", tipo="Consumivel", preco=30, bonus_hp=20, bonus_stm=10),
-    "Pão": Item(nome="Pão", tipo="Consumivel", preco=50, bonus_hp=40, bonus_stm=20),
+    "Fruta": Item(nome="Fruta", tipo="Consumivel", preco=30, bonus_hp=20, bonus_stm=15),
+    "Salada de Frutas": Item(nome="Salada de Frutas", tipo="Consumivel", preco=150, bonus_hp=50, bonus_stm=50),
+    "Pão": Item(nome="Pão", tipo="Consumivel", preco=50, bonus_hp=40, bonus_stm=30),
     "Leite": Item(nome="Leite", tipo="Consumivel", preco=60, bonus_hp=25, bonus_stm=25),
     "Ovo": Item(nome="Ovo", tipo="Consumivel", preco=40, bonus_hp=15, bonus_stm=10),
     "Queijo": Item(nome="Queijo", tipo="Consumivel", preco=120, bonus_hp=50, bonus_stm=50),
@@ -64,7 +64,8 @@ TODOS_OS_ITENS = {
     "Pedra": Item(nome="Pedra", tipo="Material", slot_equip="slots", preco=25),
     "Bancada": Item(nome="Bancada", tipo="Material", slot_equip="slots", preco=100),
     "Semente/Trigo": Item(nome="Semente/Trigo", tipo="Material", slot_equip="slots", preco=5),
-    "Semente/Morango": Item(nome="Semente/Morrango", tipo="Material", slot_equip="slots", preco=5),
+    "Semente/Morango": Item(nome="Semente/Morango", tipo="Material", slot_equip="slots", preco=5),
+    "Semente/Algodão": Item(nome="Semente/Algodão", tipo="Material", slot_equip="slots", preco=5),
     "Semente/Abobora": Item(nome="Semente/Abobora", tipo="Material", slot_equip="slots", preco=10),
     "Semente/Milho": Item(nome="Semente/Milho", tipo="Material", slot_equip="slots", preco=5),
     'Muda/Arvore': Item(nome="Muda/Arvore", tipo="Material", slot_equip="slots", preco=10),
@@ -72,6 +73,7 @@ TODOS_OS_ITENS = {
     'Fornalha': Item(nome="Fornalha", tipo="Material", slot_equip="slots", vendivel=False, comprável=False),
     ##Produtors
     "Trigo": Item(nome="Trigo", tipo="Produto", preco=100),
+    "Algodão": Item(nome="Algodão", tipo="Produto", preco=100),
     "Morango": Item(nome="Morango", tipo="Produto", preco=100),
     "Milho": Item(nome="Milho", tipo="Produto", preco=100),
     "Graveto": Item(nome="Graveto", tipo="Produto", preco=2),
@@ -89,15 +91,15 @@ class CraftRecipe:
         self.quantidade = quantidade
 
 RECEITAS_EQUIPAMENTOS = {
-    'Espada': CraftRecipe('Espada',{'Madeira': 5, 'Graveto': 4}),
+    'Espada': CraftRecipe('Espada',{'Madeira': 2, 'Graveto': 1}),
     'Vara de Pesca': CraftRecipe('Vara de Pesca',{'Lã': 3, 'Graveto': 4}),
-    'Pá': CraftRecipe('Pá',{'Madeira': 10, 'Graveto': 4}),
-    'Enchada': CraftRecipe('Enchada',{'Pedra':5 , 'Graveto': 4}),
+    'Pá': CraftRecipe('Pá',{'Madeira': 1, 'Graveto': 4}),
+    'Enchada': CraftRecipe('Enchada',{'Pedra':2 , 'Graveto': 4}),
     'Tocha': CraftRecipe('Tocha',{'Graveto':2 , 'Carvão': 1}, quantidade=2),
-    'Picareta/Madeira': CraftRecipe('Picareta/Madeira',{'Madeira': 5, 'Graveto': 4}),
-    'Machado/Madeira': CraftRecipe('Machado/Madeira',{'Madeira': 5, 'Graveto': 4}),
-    'Picareta/Pedra': CraftRecipe('Picareta/Pedra',{'Pedra': 5, 'Graveto': 4}),
-    'Machado/Pedra': CraftRecipe('Machado/Pedra',{'Pedra': 5, 'Graveto': 4}),
+    'Picareta/Madeira': CraftRecipe('Picareta/Madeira',{'Madeira': 3, 'Graveto': 4}),
+    'Machado/Madeira': CraftRecipe('Machado/Madeira',{'Madeira': 3, 'Graveto': 4}),
+    'Picareta/Pedra': CraftRecipe('Picareta/Pedra',{'Pedra': 3, 'Graveto': 4}),
+    'Machado/Pedra': CraftRecipe('Machado/Pedra',{'Pedra': 3, 'Graveto': 4}),
     'Elmo/Ferro': CraftRecipe('Elmo/Ferro', {'Barra/Ferro': 10}),
     'Peitoral': CraftRecipe('Peitoral', {'Barra/Ferro': 25}),
 }
@@ -106,12 +108,13 @@ RECEITAS_MATERIAIS = {
     'Bau': CraftRecipe('Bau', {'Madeira': 5, 'Pedra': 1}),
     'Porta': CraftRecipe('Porta', {'Madeira': 6}),
     'Chão': CraftRecipe('Chão', {'Madeira': 2}, quantidade=4),
-    'Fornalha': CraftRecipe('Forja', {'Pedra': 10, 'Carvão': 5}),
+    'Fornalha': CraftRecipe('Forja', {'Pedra': 9}),
     'Graveto': CraftRecipe('Graveto', {'Madeira': 2}, quantidade=4),
-    'Lã': CraftRecipe('Lã', {'Trigo': 2, "Madeira": 2}),
+    'Lã': CraftRecipe('Lã', {"Algodão": 2}),
     'Semente/Trigo': CraftRecipe('Semente/Trigo', {'Trigo':1}, quantidade=3),
     'Semente/Abobora': CraftRecipe('Semente/Abobora', {'Abobora':1}, quantidade=3),
     'Semente/Milho': CraftRecipe('Semente/Milho', {'Milho':1}, quantidade=3),
+    "Salada de Frutas": CraftRecipe("Salada de Frutas", {'Frutas': 5, "Morango":2})
 }
 
 RECEITAS_CONSUMIVEIS = {
@@ -126,7 +129,7 @@ RECEITAS_CONSUMIVEIS = {
 }
 
 RECEITAS_MINERIOS = {
-    "Carvão": CraftRecipe('Carvão',{'Madeira':10}),
+    "Carvão": CraftRecipe('Carvão',{'Madeira':5}),
     "Barra/Ferro": CraftRecipe('Barra/Ferro',{'Ferro':10, 'Carvão':5}),
 }
 

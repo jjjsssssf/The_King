@@ -1,238 +1,309 @@
 import random, time
-
-def interagir_com_objeto(px, py, ch, player, mapa_art, mapa_id, interacoes_contagem, ESTADO_MAPAS, TODOS_OS_ITENS, save_filename, mapas_, salvar_mapa_estado, substituir_caractere):
+def interagir_com_objeto(px, py, ch, player, mapa_art, mapa_id,interacoes_contagem, ESTADO_MAPAS, TODOS_OS_ITENS,save_filename, mapas_, salvar_mapa_estado, substituir_caractere):
+    import random, time
     feedback_message = ""
     pos = (px, py)
     interacoes_contagem[pos] = interacoes_contagem.get(pos, 0) + 1
     tentativas = interacoes_contagem[pos]
-    if player.stm <= 0:
-        feedback_message = 'Você não tem energia o suficiente'
-    else:
-        # ÁRVORE (♣)
-        if ch == '♣':
-            item_equipado = player.equipa.get("m_ter")
-            if item_equipado and item_equipado.nome.lower() == "machado/madeira":
-                if tentativas == 1:
-                    feedback_message = 'Você iniciou a cortar uma Árvore'
-                elif tentativas == 3:
-                    feedback_message = 'Você quebrou uma Árvore'
-                    mapa_art[py] = mapa_art[py][:px] + '.' + mapa_art[py][px + 1:]
-                    interacoes_contagem.pop(pos, None)
-                    for _ in range(5):
-                        player.inventario.append(TODOS_OS_ITENS["Madeira"])
-                    player.inventario.append(TODOS_OS_ITENS['Muda/Arvore'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 15
-            if item_equipado and item_equipado.nome.lower() == "machado/pedra":
-                if tentativas == 1:
-                    feedback_message = 'Você iniciou a cortar uma Árvore'
-                elif tentativas == 2:
-                    feedback_message = 'Você quebrou uma Árvore'
-                    mapa_art[py] = mapa_art[py][:px] + '.' + mapa_art[py][px + 1:]
-                    interacoes_contagem.pop(pos, None)
-                    for _ in range(5):
-                        player.inventario.append(TODOS_OS_ITENS["Madeira"])
-                    player.inventario.append(TODOS_OS_ITENS['Muda/Arvore'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 10
-            if item_equipado and item_equipado.nome.lower() == "machado/ferro":
-                if tentativas == 1:
-                    feedback_message = 'Você quebrou uma Árvore'
-                    mapa_art[py] = mapa_art[py][:px] + '.' + mapa_art[py][px + 1:]
-                    interacoes_contagem.pop(pos, None)
-                    for _ in range(5):
-                        player.inventario.append(TODOS_OS_ITENS["Madeira"])
-                    player.inventario.append(TODOS_OS_ITENS['Muda/Arvore'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 5
-            else:
-                if tentativas == 1:
-                    feedback_message = 'Você iniciou o corte da Arvore'
-                if tentativas == 5:
-                    feedback_message = 'Você quebrou a Arvore'
-                    mapa_art[py] = mapa_art[py][:px] + '.' + mapa_art[py][px + 1:]
-                    interacoes_contagem.pop(pos, None)
-                    for _ in range(5):
-                        player.inventario.append(TODOS_OS_ITENS["Madeira"])
-                    player.inventario.append(TODOS_OS_ITENS['Muda/Arvore'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 20
-        #BANCADA (C)
-        elif ch == 'C':
-            feedback_message = "Você coletou a Bancada"
-            mapa_art[py] = mapa_art[py][:px] + '.' + mapa_art[py][px + 1:]
-            interacoes_contagem.pop(pos, None)
-            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-            player.stm -= 5
 
-        #ARBUSTO (♠)
-        elif ch == '♠':
-            feedback_message = "Você colheu um arbusto"
-            mapa_art[py] = mapa_art[py][:px] + 'x' + mapa_art[py][px + 1:]
-            interacoes_contagem.pop(pos, None)
-            cair = random.randint(1, 5)
-            for _ in range(cair):
-                player.inventario.append(TODOS_OS_ITENS["Fruta"])
-            ESTADO_MAPAS[mapa_id]["regeneracoes"][(px, py)] = {
-                "tempo_inicio": time.time(),
-                "tempo_regeneracao": 30,
-            }
-            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-            player.stm -= 2
+    if player.stm <= 1:
+        return "Você não tem energia o suficiente"
 
-        #MILHO (¥)
-        elif ch == '¥':
-            feedback_message = "Você coletou o Milho"
-            quantia = random.randint(1, 5)
-            mapa_art[py] = mapa_art[py][:px] + '=' + mapa_art[py][px + 1:]
-            interacoes_contagem.pop(pos, None)
-            for _ in range(quantia):
-                player.inventario.append(TODOS_OS_ITENS["Milho"])
-            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-            player.stm -= 1
+    item_equipado = player.equipa.get("m_pri")
+    nome_item = item_equipado.nome.lower() if item_equipado else "sem_ferramenta"
+    BLOCOS = {
+        # ÁRVORE
+        "♣": {
+            "ferramentas": ["machado/madeira", "machado/pedra", "machado/ferro"],
+            "energia": {"machado/madeira": 5, "machado/pedra": 5, "machado/ferro": 5, "sem_ferramenta": 5},
+            "mensagens": {
+                "machado/madeira": ["Você começou a cortar a árvore", "Você continua cortando", "Você quebrou a árvore!"],
+                "machado/pedra": ["Você começou a cortar a árvore", "Você quebrou a árvore!"],
+                "machado/ferro": ["Você cortou a árvore instantaneamente!"],
+                "sem_ferramenta": ["Você bate na árvore... é difícil", "Você ainda tenta...", "Você ainda luta...", "Você quebrou a árvore (na marra)!"],
+            },
+            "golpes_necessarios": {"machado/madeira": 3, "machado/pedra": 2, "machado/ferro": 1, "sem_ferramenta": 4},
+            "drops": [("Madeira", 5), ("Muda/Arvore", 1)],
+            "acoes": ["remover_bloco"]
+        },
 
-        #ARBUSTO PEQUENO (x)
-        elif ch == 'x':
-            if tentativas == 1:
-                feedback_message = "Você começa a cortar o arbusto..."
-            elif tentativas == 2:
-                feedback_message = "O arbusto caiu..."
-                mapa_art[py] = mapa_art[py][:px] + '.' + mapa_art[py][px + 1:]
+        # PEDRA
+        "o": {
+            "ferramentas": ["picareta/madeira", "picareta/pedra", "picareta/ferro"],
+            "energia": {"picareta/madeira": 5, "picareta/pedra": 5, "picareta/ferro": 5, "sem_ferramenta": 0},
+            "mensagens": {
+                "picareta/madeira": ["Você iniciou a quebrar a pedra", "Você continua quebrando", "Você quebrou a pedra!"],
+                "picareta/pedra": ["Você começou a quebrar", "Você quebrou a pedra!"],
+                "picareta/ferro": ["Você destruiu a pedra facilmente!"],
+                "sem_ferramenta": ["Você precisa de uma picareta"],
+            },
+            "golpes_necessarios": {"picareta/madeira": 3, "picareta/pedra": 2, "picareta/ferro": 1, "sem_ferramenta": 999},
+            "drops": [("Pedra", 1)],
+            "acoes": ["remover_bloco"]
+        },
+        "c": {
+            "ferramentas": ["picareta/madeira", "picareta/pedra", "picareta/ferro"],
+            "energia": {"picareta/madeira": 5, "picareta/pedra": 5, "picareta/ferro": 5, "sem_ferramenta": 0},
+            "mensagens": {
+                "picareta/madeira": ["Você iniciou a quebrar o carvão", "Você continua quebrando", "Você quebrou o carvão!"],
+                "picareta/pedra": ["Você começou o carvão", "Você quebrou o carvão!"],
+                "picareta/ferro": ["Você destruiu a pedra facilmente!"],
+                "sem_ferramenta": ["Você precisa de uma picareta"],
+            },
+            "golpes_necessarios": {"picareta/madeira": 3, "picareta/pedra": 2, "picareta/ferro": 1, "sem_ferramenta": 999},
+            "drops": [("Carvão", 1)],
+            "acoes": ["remover_bloco"]
+        },
+        "u": {
+            "ferramentas": ["picareta/madeira", "picareta/pedra", "picareta/ferro"],
+            "energia": {"picareta/madeira": 5, "picareta/pedra": 5, "picareta/ferro": 5, "sem_ferramenta": 0},
+            "mensagens": {
+                "picareta/madeira": ["Você iniciou a quebrar o ferro", "Você continua quebrando", "Você quebrou o ferro!"],
+                "picareta/pedra": ["Você começou a quebrar", "Você quebrou o ferro!"],
+                "picareta/ferro": ["Você destruiu o ferro facilmente!"],
+                "sem_ferramenta": ["Você precisa de uma picareta de pedra"],
+            },
+            "golpes_necessarios": {"picareta/madeira": 999, "picareta/pedra": 2, "picareta/ferro": 1, "sem_ferramenta": 999},
+            "drops": [("Ferro", 1)],
+            "acoes": ["remover_bloco"]
+        },
+
+        # MADEIRA
+        "#": {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 5},
+            "mensagens": {"sem_ferramenta": ["Você pegou a madeira."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Madeira", 1)],
+            "acoes": ["remover_bloco"]
+        },
+
+        # BANCADA
+        "C": {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 5},
+            "mensagens": {"sem_ferramenta": ["Você coletou a bancada."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Bancada", 1)],
+            "acoes": ["remover_bloco"]
+        },
+
+        # BAÚ
+        "$": {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["Você tenta abrir o baú..."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Baú", 1)],
+            "acoes": ["interagir_bau"]
+        },
+
+        # ARBUSTO
+        "♠": {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 2},
+            "mensagens": {"sem_ferramenta": ["Você colheu um arbusto."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Fruta", lambda: random.randint(1, 5))],
+            "acoes": ["transformar_x"]
+        },
+
+        # ARBUSTO COLHIDO
+        "x": {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["Você coletou algumas mudas."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Semente/Arbusto", lambda: random.randint(1, 2))],
+            "acoes": ["remover_bloco"]
+        },
+
+        # TRIGO
+        '‼':{
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["Você coletou um Trigo."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Trigo", lambda: random.randint(1, 5))],
+            "acoes": ["terra_arada"]
+        },
+        # Algodão
+        "☼":{
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["Você coletou um Algodão."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Algodão", lambda: random.randint(1, 5))],
+            "acoes": ["terra_arada"]
+        },
+
+        # MILHO
+        '¥': {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["Você coletou um Milho."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Milho", lambda: random.randint(1, 5))],
+            "acoes": ["terra_arada"]
+        },
+
+        # ABOBORA
+        '0': {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["Você coletou uma Abobora."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Abobora", 1)],
+            "acoes": ["transformar_7"]
+        },
+        
+        "♀": {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["Você coletou um Morango."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Morango", lambda: random.randint(1, 7))],
+            "acoes": ["transformar_7"]
+        },
+
+        # CERCA
+        "!": {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["Você pegou a Cerca."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Cerca", 1)],
+            "acoes": ["remover_bloco"]
+        },
+
+        # CHÃO
+        ":": {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["Você pegou a Chão."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Chão", 1)],
+            "acoes": ["remover_bloco"]
+        },
+        # CHÃO
+        "%": {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["Você pegou a Fornalha."]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "drops": [("Fornalha", 1)],
+            "acoes": ["remover_bloco"]
+        },
+        "7": {
+            "ferramentas": [],
+            "energia": {"sem_ferramenta": 1},
+            "mensagens": {"sem_ferramenta": ["placeholder"]},
+            "golpes_necessarios": {"sem_ferramenta": 1},
+            "acoes": ["remover_bloco", "mensagem_muda"]
+        },
+
+    }
+    bloco = BLOCOS.get(ch)
+    if not bloco:
+        return f"Não há interação configurada para '{ch}'."
+
+    ferramenta = nome_item if nome_item in bloco["ferramentas"] else "sem_ferramenta"
+    mensagens = bloco["mensagens"].get(ferramenta, ["..."])
+    energia_custo = bloco["energia"].get(ferramenta, 0)
+    golpes_necessarios = bloco.get("golpes_necessarios", {}).get(ferramenta, 1)
+
+    idx_msg = min(tentativas - 1, len(mensagens) - 1)
+    feedback_message = mensagens[idx_msg]
+
+    if tentativas >= golpes_necessarios:
+        for acao in bloco["acoes"]:
+            if acao == "remover_bloco":
+                substituir_caractere(mapa_art, px, py, '.')
+                ESTADO_MAPAS[mapa_id].get("regeneracoes", {}).pop((px, py), None)
                 interacoes_contagem.pop(pos, None)
-                if pos in ESTADO_MAPAS[mapa_id].get("regeneracoes", {}):
-                    del ESTADO_MAPAS[mapa_id]["regeneracoes"][pos]
-                for _ in range(2):
-                    player.inventario.append(TODOS_OS_ITENS["Madeira"])
-                player.inventario.append(TODOS_OS_ITENS['Semente/Arbusto'])
-                salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                player.stm -= 10
+            elif acao == "interagir_bau":
+                bau_handler(px, py, mapa_art, mapa_id, ESTADO_MAPAS, player, salvar_mapa_estado, save_filename)
+            elif acao == "transformar_x":
+                substituir_caractere(mapa_art, px, py, 'x')
+                ESTADO_MAPAS[mapa_id].setdefault("regeneracoes", {})[(px, py)] = {
+                    "tempo_inicio": time.time(),
+                    "tempo_regeneracao": 30,
+                    "tipo_original": "♠"
+                }
+                interacoes_contagem.pop(pos, None)
+            elif acao == 'terra_arada':
+                substituir_caractere(mapa_art, px, py, '=')
+                interacoes_contagem.pop(pos, None)
+            elif acao == "transformar_7":
+                substituir_caractere(mapa_art, px, py, '7')
+                ESTADO_MAPAS[mapa_id].setdefault("regeneracoes", {})[(px, py)] = {
+                    "tempo_inicio": time.time(),
+                    "tempo_regeneracao": 15 * 60,
+                    "tipo_original": ch
+                }
+                ESTADO_MAPAS[mapa_id].setdefault("origens_7", {})[(px, py)] = ch
+                interacoes_contagem.pop(pos, None)
+            elif acao == "mensagem_muda":
+                origem = ESTADO_MAPAS[mapa_id].get("origens_7", {}).get((px, py))
 
-        # MADEIRA (PRAIA - #)
-        elif ch == '#':
-            feedback_message = 'Você quebrou a Madeira'
+                if origem == '0':        # abóbora
+                    feedback_message = "Você removeu a muda de Abóbora."
+
+                elif origem == '♀':      # morango
+                    feedback_message = "Você removeu a muda de Morango."
+
+                else:
+                    feedback_message = "Você removeu uma muda desconhecida."
+
+                # Remove registro após quebrar
+                ESTADO_MAPAS[mapa_id].get("origens_7", {}).pop((px, py), None)
+
+
+        for item_nome, quantidade in bloco.get("drops", []):
+            qtd = quantidade() if callable(quantidade) else quantidade
+            for _ in range(qtd):
+                player.inventario.append(TODOS_OS_ITENS[item_nome])
+
+    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+    player.stm -= energia_custo
+
+    return feedback_message
+
+def bau_handler(px, py, mapa_art, mapa_id, ESTADO_MAPAS, player, salvar_mapa_estado, save_filename):
+    baus = ESTADO_MAPAS[mapa_id].setdefault("baus_armazenamento", {})
+    pos = (px, py)
+
+    if pos in baus:
+        conteudo = baus[pos]
+        if not conteudo:
             substituir_caractere(mapa_art, px, py, '.')
-            player.inventario.append(TODOS_OS_ITENS['Madeira'])
-            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-            player.stm -= 5
-
-        # PEDRA (o)
-        elif ch == 'o':
-            item_equipado = player.equipa.get("m_ter")
-            if item_equipado and item_equipado.nome.lower() == "picareta":
-                if tentativas == 1:
-                    feedback_message = 'Você iniciou uma Pedra'
-                elif tentativas == 3:
-                    feedback_message = 'Você quebrou a Pedra'
-                    substituir_caractere(mapa_art, px, py, '.')
-                    player.inventario.append(TODOS_OS_ITENS['Pedra'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 15
-            if item_equipado and item_equipado.nome.lower() == "picareta/pedra":
-                if tentativas == 1:
-                    feedback_message = 'Você iniciou uma Pedra'
-                elif tentativas == 2:
-                    feedback_message = 'Você quebrou a Pedra'
-                    substituir_caractere(mapa_art, px, py, '.')
-                    player.inventario.append(TODOS_OS_ITENS['Pedra'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 10
-            if item_equipado and item_equipado.nome.lower() == "picareta/ferro":
-                if tentativas == 1:
-                    feedback_message = 'Você quebrou uma Pedra'
-                    substituir_caractere(mapa_art, px, py, '.')
-                    player.inventario.append(TODOS_OS_ITENS['Pedra'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 5
-            else:
-                feedback_message = 'Você precisa de uma Picareta'
-
-        # CARVÃO (c) 
-        elif ch == 'c':
-            item_equipado = player.equipa.get("m_ter")
-            if item_equipado and item_equipado.nome.lower() == "picareta/madeia":
-                if tentativas == 1:
-                    feedback_message = 'Você iniciou um carvão'
-                elif tentativas == 3:
-                    feedback_message = 'Você quebrou o carvão'
-                    substituir_caractere(mapa_art, px, py, '.')
-                    player.inventario.append(TODOS_OS_ITENS['Carvão'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 15
-            if item_equipado and item_equipado.nome.lower() == "picareta/pedra":
-                if tentativas == 1:
-                    feedback_message = 'Você iniciou um carvão'
-                elif tentativas == 2:
-                    feedback_message = 'Você quebrou o carvão'
-                    substituir_caractere(mapa_art, px, py, '.')
-                    player.inventario.append(TODOS_OS_ITENS['Carvão'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 10
-            if item_equipado and item_equipado.nome.lower() == "picareta/ferro":
-                if tentativas == 1:
-                    feedback_message = 'Você quebrou um Carvão'
-                    substituir_caractere(mapa_art, px, py, '.')
-                    player.inventario.append(TODOS_OS_ITENS['Carvão'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 5
-            else:
-                feedback_message = 'Você precisa de uma Picareta'
-
-        elif ch == 'u':
-            item_equipado = player.equipa.get("m_ter")
-            if item_equipado and item_equipado.nome.lower() == "picareta/pedra":
-                if tentativas == 1:
-                    feedback_message = 'Você iniciou um Ferro'
-                elif tentativas == 2:
-                    feedback_message = 'Você quebrou o Ferro'
-                    substituir_caractere(mapa_art, px, py, '.')
-                    player.inventario.append(TODOS_OS_ITENS['Ferro'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 10
-            if item_equipado and item_equipado.nome.lower() == "picareta/ferro":
-                if tentativas == 1:
-                    feedback_message = 'Você quebrou um Ferro'
-                    substituir_caractere(mapa_art, px, py, '.')
-                    player.inventario.append(TODOS_OS_ITENS['Ferro'])
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                    player.stm -= 5
-            else:
-                feedback_message = 'Você precisa de uma Picareta de Pedra no minimo'
-
-        # TRIGO (‼)
-        elif ch == '‼':
-            feedback_message = "Você coletou o Trigo"
-            quantia = random.randint(1, 5)
-            mapa_art[py] = mapa_art[py][:px] + '=' + mapa_art[py][px + 1:]
-            interacoes_contagem.pop(pos, None)
-            for _ in range(quantia):
-                player.inventario.append(TODOS_OS_ITENS["Trigo"])
+            del baus[pos]
             salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
             player.stm -= 1
+            print("Você quebrou um baú vazio.")
+        else:
+            print("O baú ainda contém itens. Esvazie-o antes de quebrar.")
+    else:
+        print("Este baú não está mais registrado no mapa.")
 
-        #BAÚ ($)
-        elif ch == '$':
-            ESTADO = ESTADO_MAPAS[mapa_id]
-            baus_armazenamento = ESTADO.setdefault("baus_armazenamento", {})
-            if pos in baus_armazenamento:
-                conteudo_bau = baus_armazenamento[pos]
-                if not conteudo_bau:
-                    feedback_message = "Você quebrou um baú vazio."
-                    substituir_caractere(mapa_art, px, py, '.')
-                    del baus_armazenamento[pos]
-                    salvar_mapa_estado(save_filename, mapa_id, ESTADO)
-                    player.stm -= 1
-                else:
-                    feedback_message = "O baú ainda contém itens. Esvazie-o antes de quebrar."
-            else:
-                feedback_message = "Este baú parece não existir mais no registro."
+def regenerar_blocos(mapa_art, mapa_id, ESTADO_MAPAS, salvar_mapa_estado, save_filename):
+    tempo_atual = time.time()
+    regeneracoes = ESTADO_MAPAS[mapa_id].get("regeneracoes", {})
 
-        return feedback_message
+    for (px, py), dados in list(regeneracoes.items()):
+        tempo_passado = tempo_atual - dados["tempo_inicio"]
+        if tempo_passado >= dados["tempo_regeneracao"]:
+            substituir_caractere(mapa_art, px, py, dados.get("tipo_original", '♠'))
+            del regeneracoes[(px, py)]
+            salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
 
 def usar_item(player, entrada, mapa_art, mapa_id, ESTADO_MAPAS, TODOS_OS_ITENS,save_filename, mapas_, salvar_mapa_estado, substituir_caractere):
     feedback_message = ""
-    if len(entrada) > 1 and entrada[1].isdigit():
-        indice = int(entrada[1]) - 1
-        if 0 <= indice < 4:
+
+    # Verifica se o jogador digitou apenas um número (1–9)
+    if len(entrada) == 1 and entrada[0].isdigit():
+        indice = int(entrada[0]) - 1
+        if 0 <= indice < 9:  # agora temos 9 slots
             slot_nome = f"slot_{indice + 1}"
             material_slot = player.matariais['slots'].get(slot_nome)
             if not material_slot:
@@ -245,41 +316,72 @@ def usar_item(player, entrada, mapa_art, mapa_id, ESTADO_MAPAS, TODOS_OS_ITENS,s
 
             nome = item_escolhido.nome
 
-            #Construções básicas
+            # === DIREÇÃO DO PLAYER ===
+            dir_map = {
+                "cima": (0, -1),
+                "baixo": (0, 1),
+                "esquerda": (-1, 0),
+                "direita": (1, 0)
+            }
+            dx, dy = dir_map.get(player.direcao, (0, 0))
+            x_frente = player.x_mapa + dx
+            y_frente = player.y_mapa + dy
+
+            # Verifica se está dentro dos limites do mapa
+            if not (0 <= x_frente < len(mapa_art[0]) and 0 <= y_frente < len(mapa_art)):
+                return "Você não pode usar o item fora dos limites do mapa."
+
+            # === CONSTRUÇÕES ===
             construcoes = {
                 "Madeira": ("#", "Você colocou Madeira."),
-                "Bancada": ("C", "Você colocou Bancada."),
+                "Bancada": ("C", "Você colocou uma Bancada."),
                 "Pedra": ("#", "Você colocou Pedra."),
                 "Bau": ("$", "Você colocou um Baú."),
-                'Chão': (':', 'Você colocou um chão'),
+                "Chão": (":", "Você colocou um chão."),
+                "Fornalha": ("%", "Você colocou uma Fornalha."),
+                "Porta": ("\\", "Você colocou uma Porta."),
+                "Cerca": ("!", "Você colocou uma Cerca."),
             }
 
             if nome in construcoes:
                 char, msg = construcoes[nome]
-                substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, char)
-                player.inventario.remove(item_escolhido)
-                salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                feedback_message = msg
 
-            # ======= Plantio =======
-            elif nome in ['Semente/Arbusto', 'Semente/Abobora', 'Semente/Milho', 'Semente/Trigo', 'Muda/Arvore']:
+                if mapa_art[y_frente][x_frente] == '.':  # só coloca se estiver livre
+                    substituir_caractere(mapa_art, x_frente, y_frente, char)
+                    player.inventario.remove(item_escolhido)
+                    salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
+                    feedback_message = msg
+                else:
+                    feedback_message = "O local à frente está ocupado."
+
+            # === PLANTIO SEM DIREÇÃO ===
+            elif nome in ['Semente/Arbusto', 'Semente/Abobora', 'Semente/Milho', 'Semente/Trigo', 'Muda/Arvore', "Semente/Algodão"]:
                 tipo_map = {
-                    "Semente/Trigo": ("trigo", 30 * 60),
-                    "Semente/Milho": ("milho", 30 * 60),
-                    "Semente/Abobora": ("abobora", 45 * 60),
-                    "Muda/Arvore": ("arvore", 45 * 60),
-                    "Semente/Arbusto": ("arbusto", 1000)
+                    "Semente/Trigo": ("trigo", 3 * 60),
+                    "Semente/Milho": ("milho", 3 * 60),
+                    "Semente/Abobora": ("abobora", 15 * 60),
+                    "Muda/Arvore": ("arvore", 20 * 60),
+                    "Semente/Algodão": ("algodão", 5 * 60),
+                    "Semente/Arbusto": ("arbusto", 1000),
+                    "Semente/Morrango": ("morango", 15 * 60)
                 }
 
                 tipo, tempo_crescimento = tipo_map[nome]
-                terreno = mapa_art[player.y_mapa][player.x_mapa]
 
-                if tipo in ('trigo', 'milho', 'abobora') and terreno != "=":
-                    return "Você só pode plantar sementes em solo arado ('=')."
-                elif tipo in ('arvore', 'arbusto') and terreno != ".":
-                    return "Você só pode plantar a muda em terra ('.')."
+                terreno_atual = mapa_art[player.y_mapa][player.x_mapa]
 
-                char = "*" if tipo in ('trigo', 'milho', 'abobora') else "1"
+                # Verifica se o local é válido para plantar
+                if tipo in ('trigo', 'milho', 'abobora', 'morrango', "algodão"):
+                    if terreno_atual != '=':
+                        return "Você precisa estar sobre o solo arado ('=') para plantar sementes."
+                    char = '*'
+
+                elif tipo in ('arvore', 'arbusto'):
+                    if terreno_atual != '.':
+                        return "Você precisa estar sobre terra ('.') para plantar mudas."
+                    char = '1'
+
+                # Planta no local do player
                 substituir_caractere(mapa_art, player.x_mapa, player.y_mapa, char)
                 ESTADO_MAPAS[mapa_id]["plantacoes"][(player.x_mapa, player.y_mapa)] = {
                     "item": tipo,
@@ -289,9 +391,9 @@ def usar_item(player, entrada, mapa_art, mapa_id, ESTADO_MAPAS, TODOS_OS_ITENS,s
 
                 player.inventario.remove(item_escolhido)
                 salvar_mapa_estado(save_filename, mapa_id, ESTADO_MAPAS[mapa_id])
-                feedback_message = f"Você plantou {tipo.capitalize()}!"
+                feedback_message = f"Você plantou {tipo.capitalize()} aqui!"
 
-            # Outros materiais
+            # === OUTROS ITENS ===
             else:
                 feedback_message = f"Você usou o material {item_escolhido.nome}!"
 
@@ -299,15 +401,16 @@ def usar_item(player, entrada, mapa_art, mapa_id, ESTADO_MAPAS, TODOS_OS_ITENS,s
             if not tem_mais:
                 player.matariais['slots'][slot_nome] = None
 
-        elif indice < len(player.inventario):
-            item_escolhido = player.inventario[indice]
-            if item_escolhido.tipo == "Material":
-                feedback_message = "Você precisa equipar esse material em um slot para usá-lo."
-            else:
-                feedback_message = f"Você usou o item {item_escolhido.nome}!"
         else:
-            feedback_message = "Número inválido."
+            feedback_message = "Número de slot inválido (use 1–9)."
     else:
-        feedback_message = "Use: usar [número]"
+        feedback_message = "Digite apenas o número do slot (1–9) para usar o item."
 
     return feedback_message
+
+
+
+
+
+
+
